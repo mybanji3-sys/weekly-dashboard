@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>글로벌 매크로 위클리 터미널 대시보드</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script><style>/*! tailwindcss v4.3.0 | MIT License | https://tailwindcss.com */
+@layer properties;
+@layer theme, base, components, utilities;
+@layer theme {
+  :root, :host {
+    --font-sans: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+    --color-slate-50: oklch(98.4% 0.003 247.858);
+    --color-slate-200: oklch(92.9% 0.013 255.508);
+    --color-slate-500: oklch(55.4% 0.046 257.417);
+    --color-slate-600: oklch(44.6% 0.043 257.281);
+    --color-white: #fff;
+    --spacing: 0.25rem;
+    --text-xs: 0.75rem;
+    --text-xs--line-height: calc(1 / 0.75);
+    --text-sm: 0.875rem;
+    --text-sm--line-height: calc(1.25 / 0.875);
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --default-font-family: var(--font-sans);
+    --default-mono-font-family: var(--font-mono);
+  }
+}
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+  html, :host {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    tab-size: 4;
+    font-family: var(--default-font-family, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji');
+    font-feature-settings: var(--default-font-feature-settings, normal);
+    font-variation-settings: var(--default-font-variation-settings, normal);
+    -webkit-tap-highlight-color: transparent;
+  }
+  hr {
+    height: 0;
+    color: inherit;
+    border-top-width: 1px;
+  }
+  abbr:where([title]) {
+    -webkit-text-decoration: underline dotted;
+    text-decoration: underline dotted;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  a {
+    color: inherit;
+    -webkit-text-decoration: inherit;
+    text-decoration: inherit;
+  }
+  b, strong {
+    font-weight: bolder;
+  }
+  code, kbd, samp, pre {
+    font-family: var(--default-mono-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace);
+    font-feature-settings: var(--default-mono-font-feature-settings, normal);
+    font-variation-settings: var(--default-mono-font-variation-settings, normal);
+    font-size: 1em;
+  }
+  small {
+    font-size: 80%;
+  }
+  sub, sup {
+    font-size: 75%;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+  }
+  sub {
+    bottom: -0.25em;
+  }
+  sup {
+    top: -0.5em;
+  }
+  table {
+    text-indent: 0;
+    border-color: inherit;
+    border-collapse: collapse;
+  }
+  :-moz-focusring {
+    outline: auto;
+  }
+  progress {
+    vertical-align: baseline;
+  }
+  summary {
+    display: list-item;
+  }
+  ol, ul, menu {
+    list-style: none;
+  }
+  img, svg, video, canvas, audio, iframe, embed, object {
+    display: block;
+    vertical-align: middle;
+  }
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
+  button, input, select, optgroup, textarea, ::file-selector-button {
+    font: inherit;
+    font-feature-settings: inherit;
+    font-variation-settings: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border-radius: 0;
+    background-color: transparent;
+    opacity: 1;
+  }
+  :where(select:is([multiple], [size])) optgroup {
+    font-weight: bolder;
+  }
+  :where(select:is([multiple], [size])) optgroup option {
+    padding-inline-start: 20px;
+  }
+  ::file-selector-button {
+    margin-inline-end: 4px;
+  }
+  ::placeholder {
+    opacity: 1;
+  }
+  @supports (not (-webkit-appearance: -apple-pay-button))  or (contain-intrinsic-size: 1px) {
+    ::placeholder {
+      color: currentcolor;
+      @supports (color: color-mix(in lab, red, red)) {
+        color: color-mix(in oklab, currentcolor 50%, transparent);
+      }
+    }
+  }
+  textarea {
+    resize: vertical;
+  }
+  ::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+  ::-webkit-date-and-time-value {
+    min-height: 1lh;
+    text-align: inherit;
+  }
+  ::-webkit-datetime-edit {
+    display: inline-flex;
+  }
+  ::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+  ::-webkit-datetime-edit, ::-webkit-datetime-edit-year-field, ::-webkit-datetime-edit-month-field, ::-webkit-datetime-edit-day-field, ::-webkit-datetime-edit-hour-field, ::-webkit-datetime-edit-minute-field, ::-webkit-datetime-edit-second-field, ::-webkit-datetime-edit-millisecond-field, ::-webkit-datetime-edit-meridiem-field {
+    padding-block: 0;
+  }
+  ::-webkit-calendar-picker-indicator {
+    line-height: 1;
+  }
+  :-moz-ui-invalid {
+    box-shadow: none;
+  }
+  button, input:where([type='button'], [type='reset'], [type='submit']), ::file-selector-button {
+    appearance: button;
+  }
+  ::-webkit-inner-spin-button, ::-webkit-outer-spin-button {
+    height: auto;
+  }
+  [hidden]:where(:not([hidden='until-found'])) {
+    display: none !important;
+  }
+}
+@layer utilities {
+  .mt-2 {
+    margin-top: calc(var(--spacing) * 2);
+  }
+  .mb-0\.5 {
+    margin-bottom: calc(var(--spacing) * 0.5);
+  }
+  .mb-1 {
+    margin-bottom: calc(var(--spacing) * 1);
+  }
+  .mb-2 {
+    margin-bottom: calc(var(--spacing) * 2);
+  }
+  .mb-2\.5 {
+    margin-bottom: calc(var(--spacing) * 2.5);
+  }
+  .mb-3 {
+    margin-bottom: calc(var(--spacing) * 3);
+  }
+  .flex {
+    display: flex;
+  }
+  .grid {
+    display: grid;
+  }
+  .w-1\/3 {
+    width: calc(1 / 3 * 100%);
+  }
+  .grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  .grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .flex-col {
+    flex-direction: column;
+  }
+  .items-center {
+    align-items: center;
+  }
+  .justify-between {
+    justify-content: space-between;
+  }
+  .gap-2 {
+    gap: calc(var(--spacing) * 2);
+  }
+  .gap-2\.5 {
+    gap: calc(var(--spacing) * 2.5);
+  }
+  .gap-3 {
+    gap: calc(var(--spacing) * 3);
+  }
+  .rounded {
+    border-radius: 0.25rem;
+  }
+  .border {
+    border-style: var(--tw-border-style);
+    border-width: 1px;
+  }
+  .border-b-2 {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 2px;
+  }
+  .border-\[\#1e3a8a\] {
+    border-color: #1e3a8a;
+  }
+  .bg-\[\#1e3a8a\] {
+    background-color: #1e3a8a;
+  }
+  .bg-slate-50 {
+    background-color: var(--color-slate-50);
+  }
+  .p-1 {
+    padding: calc(var(--spacing) * 1);
+  }
+  .p-2 {
+    padding: calc(var(--spacing) * 2);
+  }
+  .px-4 {
+    padding-inline: calc(var(--spacing) * 4);
+  }
+  .py-2 {
+    padding-block: calc(var(--spacing) * 2);
+  }
+  .pb-1 {
+    padding-bottom: calc(var(--spacing) * 1);
+  }
+  .text-center {
+    text-align: center;
+  }
+  .text-left {
+    text-align: left;
+  }
+  .text-sm {
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+  }
+  .text-xs {
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+  }
+  .text-\[9px\] {
+    font-size: 9px;
+  }
+  .text-\[10px\] {
+    font-size: 10px;
+  }
+  .font-bold {
+    --tw-font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-bold);
+  }
+  .font-semibold {
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+  }
+  .text-\[\#1e3a8a\] {
+    color: #1e3a8a;
+  }
+  .text-slate-200 {
+    color: var(--color-slate-200);
+  }
+  .text-slate-500 {
+    color: var(--color-slate-500);
+  }
+  .text-slate-600 {
+    color: var(--color-slate-600);
+  }
+  .text-white {
+    color: var(--color-white);
+  }
+  .shadow-sm {
+    --tw-shadow: 0 1px 3px 0 var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 1px 2px -1px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+  .md\:grid-cols-5 {
+    @media (width >= 48rem) {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+  .xl\:grid-cols-2 {
+    @media (width >= 80rem) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+}
+@property --tw-border-style {
+  syntax: "*";
+  inherits: false;
+  initial-value: solid;
+}
+@property --tw-font-weight {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-shadow-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-shadow-alpha {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+@property --tw-inset-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-inset-shadow-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-inset-shadow-alpha {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 100%;
+}
+@property --tw-ring-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-ring-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-inset-ring-color {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-inset-ring-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@property --tw-ring-inset {
+  syntax: "*";
+  inherits: false;
+}
+@property --tw-ring-offset-width {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --tw-ring-offset-color {
+  syntax: "*";
+  inherits: false;
+  initial-value: #fff;
+}
+@property --tw-ring-offset-shadow {
+  syntax: "*";
+  inherits: false;
+  initial-value: 0 0 #0000;
+}
+@layer properties {
+  @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
+    *, ::before, ::after, ::backdrop {
+      --tw-border-style: solid;
+      --tw-font-weight: initial;
+      --tw-shadow: 0 0 #0000;
+      --tw-shadow-color: initial;
+      --tw-shadow-alpha: 100%;
+      --tw-inset-shadow: 0 0 #0000;
+      --tw-inset-shadow-color: initial;
+      --tw-inset-shadow-alpha: 100%;
+      --tw-ring-color: initial;
+      --tw-ring-shadow: 0 0 #0000;
+      --tw-inset-ring-color: initial;
+      --tw-inset-ring-shadow: 0 0 #0000;
+      --tw-ring-inset: initial;
+      --tw-ring-offset-width: 0px;
+      --tw-ring-offset-color: #fff;
+      --tw-ring-offset-shadow: 0 0 #0000;
+    }
+  }
+}
+</style>
+    <script src="score_results_data.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+            margin: 0;
+            padding: 12px;
+        }
+        .macro-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        .macro-table th, .macro-table td {
+            border: 1px solid #cbd5e1;
+            padding: 4px 6px;
+        }
+        .macro-table th {
+            background-color: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+            text-align: center;
+        }
+        .macro-table td { text-align: right; font-variant-numeric: tabular-nums; }
+        .macro-table td.text-left { text-align: left; font-weight: 500; background-color: #fafafa; }
+        
+        .val-up { color: #2563eb; font-weight: 600; }
+        .val-down { color: #dc2626; font-weight: 600; }
+        
+        .fixed-chart-wrapper { position: relative; height: 85px; width: 100%; }
+        .macro-chart-wrapper { position: relative; height: 130px; width: 100%; }
+        .section-card {
+            background: #ffffff;
+            border: 1px solid #94a3b8;
+            border-radius: 4px;
+            padding: 10px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-[#1e3a8a] text-white px-4 py-2 rounded shadow-sm flex justify-between items-center mb-3">
+        <div class="font-bold text-sm">▶ 주요사항 (글로벌 매크로 위클리 터미널)</div>
+        <div id="txt-base-date" class="text-xs text-slate-200 font-semibold">기준일자: 2026.05.28</div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 mb-3">
+        <div class="section-card flex flex-col justify-between">
+            <div>
+                <div class="text-[#1e3a8a] font-bold text-xs border-b-2 border-[#1e3a8a] pb-1 mb-2 flex justify-between">
+                    <span>■ 주요 주식 시장 현황</span>
+                </div>
+                <table class="macro-table">
+                    <thead>
+                        <tr>
+                            <th class="w-1/3">시장 지수</th><th>현재가</th><th>1W (%)</th><th>MTD (%)</th><th>YTD (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-equity-body"><tr>
+                <td class="text-left">한국 KOSPI</td>
+                <td class="font-semibold">8,576.65</td>
+                <td><span class="val-up">+5.29<sup>%</sup></span></td>
+                <td><span class="val-up">+50.19<sup>%</sup></span></td>
+                <td><span class="val-up">+90.94<sup>%</sup></span></td>
+            </tr><tr>
+                <td class="text-left">한국 KOSPI 200</td>
+                <td class="font-semibold">1,369.35</td>
+                <td><span class="val-up">+6.01<sup>%</sup></span></td>
+                <td><span class="val-up">+59.60<sup>%</sup></span></td>
+                <td><span class="val-up">+108.09<sup>%</sup></span></td>
+            </tr><tr>
+                <td class="text-left">한국 KOSDAQ</td>
+                <td class="font-semibold">1,018.59</td>
+                <td><span class="val-up">+2.46<sup>%</sup></span></td>
+                <td><span class="val-up">+1.52<sup>%</sup></span></td>
+                <td><span class="val-up">+19.84<sup>%</sup></span></td>
+            </tr><tr>
+                <td class="text-left">미국 S&amp;P 500</td>
+                <td class="font-semibold">7,599.96</td>
+                <td><span class="val-up">+1.00<sup>%</sup></span></td>
+                <td><span class="val-up">+14.37<sup>%</sup></span></td>
+                <td><span class="val-up">+9.65<sup>%</sup></span></td>
+            </tr><tr>
+                <td class="text-left">미국 NASDAQ</td>
+                <td class="font-semibold">27,086.81</td>
+                <td><span class="val-up">+1.45<sup>%</sup></span></td>
+                <td><span class="val-up">+22.13<sup>%</sup></span></td>
+                <td><span class="val-up">+14.80<sup>%</sup></span></td>
+            </tr><tr>
+                <td class="text-left">미국 필라델피아 반도체</td>
+                <td class="font-semibold">12,965.65</td>
+                <td><span class="val-up">+6.17<sup>%</sup></span></td>
+                <td><span class="val-up">+62.80<sup>%</sup></span></td>
+                <td><span class="val-up">+72.41<sup>%</sup></span></td>
+            </tr><tr>
+                <td class="text-left">중국 상해종합</td>
+                <td class="font-semibold">4,056.24</td>
+                <td><span class="val-up">+0.40<sup>%</sup></span></td>
+                <td><span class="val-up">+3.68<sup>%</sup></span></td>
+                <td><span class="val-up">+1.75<sup>%</sup></span></td>
+            </tr><tr>
+                <td class="text-left">홍콩 항셍</td>
+                <td class="font-semibold">25,768.87</td>
+                <td><span class="val-down">-0.23<sup>%</sup></span></td>
+                <td><span class="val-up">+0.14<sup>%</sup></span></td>
+                <td><span class="val-down">-3.84<sup>%</sup></span></td>
+            </tr></tbody>
+                </table>
+            </div>
+            <div class="grid grid-cols-4 gap-2 mt-2">
+                <div class="border rounded p-1 bg-slate-50 text-center">
+                    <div class="text-[9px] font-bold text-slate-500 mb-0.5">[KOSPI]</div>
+                    <div class="fixed-chart-wrapper"><canvas id="chart_kospi" width="213" height="85" style="display: block; box-sizing: border-box; height: 85px; width: 213px;"></canvas></div>
+                </div>
+                <div class="border rounded p-1 bg-slate-50 text-center">
+                    <div class="text-[9px] font-bold text-slate-500 mb-0.5">[S&amp;P 500]</div>
+                    <div class="fixed-chart-wrapper"><canvas id="chart_sp500" width="213" height="85" style="display: block; box-sizing: border-box; height: 85px; width: 213px;"></canvas></div>
+                </div>
+                <div class="border rounded p-1 bg-slate-50 text-center">
+                    <div class="text-[9px] font-bold text-slate-500 mb-0.5">[NASDAQ]</div>
+                    <div class="fixed-chart-wrapper"><canvas id="chart_nasdaq" width="213" height="85" style="display: block; box-sizing: border-box; height: 85px; width: 213px;"></canvas></div>
+                </div>
+                <div class="border rounded p-1 bg-slate-50 text-center">
+                    <div class="text-[9px] font-bold text-slate-500 mb-0.5">[중국 상해종합]</div>
+                    <div class="fixed-chart-wrapper"><canvas id="chart_shanghai" width="213" height="85" style="display: block; box-sizing: border-box; height: 85px; width: 213px;"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-card flex flex-col justify-between">
+            <div>
+                <div class="text-[#1e3a8a] font-bold text-xs border-b-2 border-[#1e3a8a] pb-1 mb-2">
+                    ■ 글로벌 금리 · 통화 · 가상화폐 지표
+                </div>
+                <table class="macro-table">
+                    <thead>
+                        <tr>
+                            <th class="w-1/3">자산 클래스 / 지표명</th><th>종가</th><th>1W (bp/%)</th><th>MTD (bp/%)</th><th>YTD (bp/%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-fi-body"><tr>
+                <td class="text-left">[채권] 국고 3년</td>
+                <td class="font-semibold">3.72</td>
+                <td><span class="val-down">-0.20<sup>bp</sup></span></td>
+                <td><span class="val-up">+13.00<sup>bp</sup></span></td>
+                <td><span class="val-up">+77.20<sup>bp</sup></span></td>
+            </tr><tr>
+                <td class="text-left">[채권] 국고 10년</td>
+                <td class="font-semibold">4.06</td>
+                <td><span class="val-down">-6.10<sup>bp</sup></span></td>
+                <td><span class="val-up">+15.00<sup>bp</sup></span></td>
+                <td><span class="val-up">+68.00<sup>bp</sup></span></td>
+            </tr><tr>
+                <td class="text-left">[채권] 미국 2년</td>
+                <td class="font-semibold">3.62</td>
+                <td><span class="val-up">+0.80<sup>bp</sup></span></td>
+                <td><span class="val-down">-1.50<sup>bp</sup></span></td>
+                <td><span class="val-up">+5.70<sup>bp</sup></span></td>
+            </tr><tr>
+                <td class="text-left">[채권] 미국 10년</td>
+                <td class="font-semibold">4.475</td>
+                <td><span class="val-down">-13.10<sup>bp</sup></span></td>
+                <td><span class="val-up">+13.60<sup>bp</sup></span></td>
+                <td><span class="val-up">+26.80<sup>bp</sup></span></td>
+            </tr><tr>
+                <td class="text-left">[채권] 미국 30년</td>
+                <td class="font-semibold">4.991</td>
+                <td><span class="val-down">-12.70<sup>bp</sup></span></td>
+                <td><span class="val-up">+8.50<sup>bp</sup></span></td>
+                <td><span class="val-up">+12.10<sup>bp</sup></span></td>
+            </tr><tr>
+                <td class="text-left">[외환] 달러인덱스</td>
+                <td class="font-semibold">99.17</td>
+                <td><span class="val-up">+0.02<sup>%</sup></span></td>
+                <td><span class="val-down">-0.44<sup>%</sup></span></td>
+                <td><span class="val-up">+0.80<sup>%</sup></span></td>
+            </tr><tr>
+                <td class="text-left">[외환] 원/달러 환율</td>
+                <td class="font-semibold">1,517.64</td>
+                <td><span class="val-up">+0.38<sup>%</sup></span></td>
+                <td><span class="val-up">+0.14<sup>%</sup></span></td>
+                <td><span class="val-up">+4.28<sup>%</sup></span></td>
+            </tr><tr>
+                <td class="text-left">[외환] 비트코인 (BTC/USD)</td>
+                <td class="font-semibold">70,864.13</td>
+                <td><span class="val-down">-4.12<sup>%</sup></span></td>
+                <td><span class="val-up">+9.20<sup>%</sup></span></td>
+                <td><span class="val-down">-17.34<sup>%</sup></span></td>
+            </tr></tbody>
+                </table>
+            </div>
+            <div class="grid grid-cols-4 gap-2 mt-2">
+                <div class="border rounded p-1 bg-slate-50 text-center">
+                    <div class="text-[9px] font-bold text-slate-500 mb-0.5">[미국채 10Y]</div>
+                    <div class="fixed-chart-wrapper"><canvas id="chart_us10y" width="213" height="85" style="display: block; box-sizing: border-box; height: 85px; width: 213px;"></canvas></div>
+                </div>
+                <div class="border rounded p-1 bg-slate-50 text-center">
+                    <div class="text-[9px] font-bold text-slate-500 mb-0.5">[달러인덱스]</div>
+                    <div class="fixed-chart-wrapper"><canvas id="chart_dxy" width="213" height="85" style="display: block; box-sizing: border-box; height: 85px; width: 213px;"></canvas></div>
+                </div>
+                <div class="border rounded p-1 bg-slate-50 text-center">
+                    <div class="text-[9px] font-bold text-slate-500 mb-0.5">[원/달러 환율]</div>
+                    <div class="fixed-chart-wrapper"><canvas id="chart_krw" width="213" height="85" style="display: block; box-sizing: border-box; height: 85px; width: 213px;"></canvas></div>
+                </div>
+                <div class="border rounded p-1 bg-slate-50 text-center">
+                    <div class="text-[9px] font-bold text-slate-500 mb-0.5">[비트코인]</div>
+                    <div class="fixed-chart-wrapper"><canvas id="chart_btc" width="213" height="85" style="display: block; box-sizing: border-box; height: 85px; width: 213px;"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 mb-3">
+        <div class="section-card">
+            <div class="text-[#1e3a8a] font-bold text-xs border-b-2 border-[#1e3a8a] pb-1 mb-2">■ 리스크 · 변동성 및 수급 지표</div>
+            <table class="macro-table">
+                <thead>
+                    <tr><th class="w-1/3">지표 구분</th><th>현재 스코어</th><th>1W 변동</th><th>MTD 변동</th><th>YTD 변동</th></tr>
+                </thead>
+                <tbody id="table-risk-body"><tr>
+                <td class="text-left">미국 10년 - 2년</td>
+                <td class="font-semibold">42.73</td>
+                <td><span class="val-up">+43.47<sup>bp</sup></span></td>
+                <td><span class="val-up">+17.02<sup>bp</sup></span></td>
+                <td><span class="val-down">-11.67<sup>bp</sup></span></td>
+            </tr><tr>
+                <td class="text-left">VIX 지수</td>
+                <td class="font-semibold">15.32</td>
+                <td><span class="val-up">+16.70<sup>bp</sup></span></td>
+                <td><span class="val-up">+21.14<sup>bp</sup></span></td>
+                <td><span class="val-up">+82.69<sup>bp</sup></span></td>
+            </tr><tr>
+                <td class="text-left">Fear-Greed Index</td>
+                <td class="font-semibold">60.00</td>
+                <td><span class="val-up">+59.00<sup>bp</sup></span></td>
+                <td><span class="val-up">+47.00<sup>bp</sup></span></td>
+                <td><span class="val-up">+2.00<sup>bp</sup></span></td>
+            </tr></tbody>
+            </table>
+        </div>
+        <div class="section-card">
+            <div class="text-[#1e3a8a] font-bold text-xs border-b-2 border-[#1e3a8a] pb-1 mb-2">■ 글로벌 원자재 핵심 원가 추이</div>
+            <table class="macro-table">
+                <thead>
+                    <tr><th class="w-1/3">상품명</th><th>현재가</th><th>1W (%)</th><th>MTD (%)</th><th>YTD (%)</th></tr>
+                </thead>
+                <tbody id="table-commodity-body"><tr>
+                <td class="text-left">WTI 크루드오일</td>
+                <td class="font-semibold">91.36</td>
+                <td><span class="val-down">-7.96<sup>%</sup></span></td>
+                <td><span class="val-down">-11.43<sup>%</sup></span></td>
+                <td><span class="val-up">+54.71<sup>%</sup></span></td>
+            </tr><tr>
+                <td class="text-left">천연가스</td>
+                <td class="font-semibold">3.19</td>
+                <td><span class="val-up">+0.73<sup>%</sup></span></td>
+                <td><span class="val-up">+7.84<sup>%</sup></span></td>
+                <td><span class="val-down">-15.98<sup>%</sup></span></td>
+            </tr><tr>
+                <td class="text-left">국제 금 (Gold)</td>
+                <td class="font-semibold">4,538.30</td>
+                <td><span class="val-down">-2.03<sup>%</sup></span></td>
+                <td><span class="val-down">-7.02<sup>%</sup></span></td>
+                <td><span class="val-up">+3.09<sup>%</sup></span></td>
+            </tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="text-[#1e3a8a] font-bold text-xs border-b-2 border-[#1e3a8a] pb-1 mb-2.5">
+            ■ 주요 경제 지표 시계열 추이 (Macro Trends)
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-2.5">
+            <div class="border rounded p-2 bg-slate-50">
+                <div class="text-[10px] font-bold text-slate-600 mb-1">장단기 금리차(10Y-2Y)</div>
+                <div class="macro-chart-wrapper"><canvas id="chart_macro_spread" width="347" height="130" style="display: block; box-sizing: border-box; height: 130px; width: 347.2px;"></canvas></div>
+            </div>
+            <div class="border rounded p-2 bg-slate-50">
+                <div class="text-[10px] font-bold text-slate-600 mb-1">개인소비지출(PCE) YoY (%)</div>
+                <div class="macro-chart-wrapper"><canvas id="chart_macro_pce" width="347" height="130" style="display: block; box-sizing: border-box; height: 130px; width: 347.2px;"></canvas></div>
+            </div>
+            <div class="border rounded p-2 bg-slate-50">
+                <div class="text-[10px] font-bold text-slate-600 mb-1">신규 주택 판매 건수 (K)</div>
+                <div class="macro-chart-wrapper"><canvas id="chart_macro_homesales" width="347" height="130" style="display: block; box-sizing: border-box; height: 130px; width: 347.2px;"></canvas></div>
+            </div>
+            <div class="border rounded p-2 bg-slate-50">
+                <div class="text-[10px] font-bold text-slate-600 mb-1">실질 GDP 성장률(QoQ %)</div>
+                <div class="macro-chart-wrapper"><canvas id="chart_macro_gdp" width="347" height="130" style="display: block; box-sizing: border-box; height: 130px; width: 347.2px;"></canvas></div>
+            </div>
+            <div class="border rounded p-2 bg-slate-50">
+                <div class="text-[10px] font-bold text-slate-600 mb-1">신규 실업수당 청구 (K건)</div>
+                <div class="macro-chart-wrapper"><canvas id="chart_macro_unemployment" width="347" height="130" style="display: block; box-sizing: border-box; height: 130px; width: 347.2px;"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="score_results_data.js"></script>
+
+    <script>
+        function createRow(name, item, isBp = false) {
+            if (!item) return '';
+            const sign = isBp ? 'bp' : '%';
+            const fmt = (val) => {
+                if(val === undefined || val === null) return '-';
+                const cls = val > 0 ? 'val-up' : (val < 0 ? 'val-down' : '');
+                return `<span class="${cls}">${val > 0 ? '+' : ''}${val.toFixed(2)}<sup>${sign}</sup></span>`;
+            };
+            return `<tr>
+                <td class="text-left">${name}</td>
+                <td class="font-semibold">${item.close.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td>${fmt(item.w1)}</td>
+                <td>${fmt(item.mtd)}</td>
+                <td>${fmt(item.ytd)}</td>
+            </tr>`;
+        }
+
+        function drawChart(id, type, labels, dataPoints, color, isFilled=false) {
+            const ctx = document.getElementById(id);
+            if (!ctx || !dataPoints) return;
+            new Chart(ctx.getContext('2d'), {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{ 
+                        data: dataPoints, 
+                        borderColor: color, 
+                        backgroundColor: type === 'bar' ? color + '30' : color,
+                        borderWidth: 1.8, 
+                        fill: isFilled, 
+                        pointRadius: type === 'bar' ? 0 : 2 
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        x: { grid: { display: false }, ticks: { font: { size: 9 } } }, 
+                        y: { ticks: { font: { size: 9 } } } 
+                    } 
+                }
+            });
+        }
+
+        window.onload = function() {
+            if (typeof jsonDashboardData === 'undefined') {
+                console.error("score_results_data.js 파일을 로드하지 못했습니다."); document.getElementById("txt-base-date").innerText = "기준일자: 로드 실패";
+                return;
+            }
+            const data = jsonDashboardData;
+            document.getElementById('txt-base-date').innerText = `기준일자: ${data.base_date}`;
+
+            // 테이블 렌더링
+            const eqTable = document.getElementById('table-equity-body');
+            Object.keys(data.equity).forEach(k => eqTable.innerHTML += createRow(k, data.equity[k], false));
+
+            const fiTable = document.getElementById('table-fi-body');
+            Object.keys(data.bond).forEach(k => fiTable.innerHTML += createRow(`[채권] ${k}`, data.bond[k], true));
+            Object.keys(data.fx).forEach(k => fiTable.innerHTML += createRow(`[외환] ${k}`, data.fx[k], false));
+
+            const riskTable = document.getElementById('table-risk-body');
+            Object.keys(data.risk).forEach(k => riskTable.innerHTML += createRow(k, data.risk[k], true));
+
+            const cmdTable = document.getElementById('table-commodity-body');
+            Object.keys(data.commodity).forEach(k => cmdTable.innerHTML += createRow(k, data.commodity[k], false));
+
+            // 미니 트렌드 스파크라인 차트 매핑
+            const dummyLabels = ['', '', '', '', '', '', ''];
+            if(data.equity["한국 KOSPI"]) drawChart('chart_kospi', 'line', dummyLabels, data.equity["한국 KOSPI"].trend, '#2563eb');
+            if(data.equity["미국 S&P 500"]) drawChart('chart_sp500', 'line', dummyLabels, data.equity["미국 S&P 500"].trend, '#16a34a');
+            if(data.equity["미국 NASDAQ"]) drawChart('chart_nasdaq', 'line', dummyLabels, data.equity["미국 NASDAQ"].trend, '#0284c7');
+            if(data.equity["중국 상해종합"]) drawChart('chart_shanghai', 'line', dummyLabels, data.equity["중국 상해종합"].trend, '#dc2626');
+
+            if(data.bond["미국 10년"]) drawChart('chart_us10y', 'line', dummyLabels, data.bond["미국 10년"].trend, '#475569');
+            if(data.fx["달러인덱스"]) drawChart('chart_dxy', 'line', dummyLabels, data.fx["달러인덱스"].trend, '#4f46e5');
+            if(data.fx["원/달러 환율"]) drawChart('chart_krw', 'line', dummyLabels, data.fx["원/달러 환율"].trend, '#7c3aed');
+            if(data.fx["비트코인 (BTC/USD)"]) drawChart('chart_btc', 'line', dummyLabels, data.fx["비트코인 (BTC/USD)"].trend, '#f59e0b');
+
+            // 하단 5대 거시 매크로 차트 (macro_charts/charts 키 동적 탐지)
+            const ch = data.macro_charts || data.charts || {};
+            if(ch.spread) drawChart('chart_macro_spread', 'line', ['T-4','T-3','T-2','T-1','최신'], ch.spread, '#64748b');
+            if(ch.pce) drawChart('chart_macro_pce', 'line', ['N-5','N-4','N-3','N-2','N-1','최신'], ch.pce, '#1e3a8a');
+            if(ch.home_sales) drawChart('chart_macro_homesales', 'bar', ['M-4','M-3','M-2','M-1','최신'], ch.home_sales, '#0284c7');
+            if(ch.gdp) drawChart('chart_macro_gdp', 'line', ['Q-4','Q-3','Q-2','Q-1','최신'], ch.gdp, '#16a34a');
+            if(ch.unemployment_claims) drawChart('chart_macro_unemployment', 'bar', ['W-5','W-4','W-3','W-2','W-1','최신'], ch.unemployment_claims, '#dc2626');
+        };
+    </script>
+
+</body></html>

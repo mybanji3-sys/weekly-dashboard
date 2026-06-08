@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>퀀트 위클리 허브</title>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+:root{
+  --navy:#1e3a8a; --navy2:#1e40af; --navy3:#1d4ed8;
+  --bg:#f1f5f9; --bg2:#fff; --bg3:#f8fafc;
+  --bd:#cbd5e1; --bd2:#94a3b8;
+  --t1:#1e293b; --t2:#334155; --t3:#64748b;
+  --tab-h:44px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;
+     background:var(--bg);color:var(--t1);font-size:12px;}
+
+.hub-header{
+  background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#1e40af 100%);
+  color:#fff;height:48px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;flex-shrink:0;
+  border-bottom:1px solid rgba(99,179,237,.25);
+}
+.hub-title{
+  display:flex;align-items:center;gap:0;
+  letter-spacing:-.3px;
+}
+.hub-title .t-geps{
+  font-size:15px;font-weight:800;
+  color:#fff;
+  font-family:'Pretendard',sans-serif;
+  letter-spacing:.5px;
+}
+.hub-title .t-dot{
+  font-size:13px;color:#60a5fa;margin:0 6px;
+  font-weight:300;
+}
+.hub-title .t-ai{
+  font-size:14px;font-weight:800;
+  background:linear-gradient(90deg,#60a5fa,#a78bfa);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+  letter-spacing:2px;
+  margin-right:8px;
+}
+.hub-title .t-weekly{
+  font-size:14px;font-weight:300;color:rgba(255,255,255,.85);
+  letter-spacing:2px;text-transform:uppercase;
+  font-family:'Pretendard',sans-serif;
+}
+.hub-title .t-brief{
+  font-size:13px;font-weight:600;
+  color:#93c5fd;letter-spacing:3px;
+  text-transform:uppercase;
+  margin-left:8px;padding-left:8px;
+  border-left:1px solid rgba(99,179,237,.4);
+  align-self:center;
+}
+.hub-date{font-size:11px;color:#bfdbfe;font-weight:600;}
+
+.tab-bar{
+  background:var(--bg2);border-bottom:2px solid var(--navy);
+  display:flex;align-items:stretch;height:var(--tab-h);
+  padding:0 8px;gap:2px;flex-shrink:0;
+  overflow-x:auto;scrollbar-width:none;
+}
+.tab-bar::-webkit-scrollbar{display:none;}
+
+.tab-btn{
+  display:flex;align-items:center;gap:6px;padding:0 16px;
+  border:none;background:transparent;color:var(--t3);
+  font-family:inherit;font-size:12px;font-weight:600;
+  cursor:pointer;border-bottom:3px solid transparent;
+  margin-bottom:-2px;white-space:nowrap;
+  transition:color .15s,border-color .15s;
+}
+.tab-btn:hover{color:var(--navy2);}
+.tab-btn.active{color:var(--navy);border-bottom-color:var(--navy);}
+.tab-btn .ico{font-size:15px;}
+.tab-btn .badge{font-size:9px;background:var(--navy);color:#fff;
+  padding:1px 5px;border-radius:8px;font-weight:700;}
+.tab-btn.active .badge{background:var(--navy3);}
+
+.frame-area{flex:1;position:relative;overflow:hidden;}
+.page-wrap{display:flex;flex-direction:column;height:100vh;}
+
+iframe.tab-frame{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  border:none;background:var(--bg);
+  opacity:0;pointer-events:none;transition:opacity .2s;
+}
+iframe.tab-frame.active{opacity:1;pointer-events:auto;}
+
+.loading-overlay{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;
+  z-index:10;transition:opacity .3s;
+}
+.loading-overlay.hidden{opacity:0;pointer-events:none;}
+.spinner{width:32px;height:32px;border:3px solid var(--bd);
+  border-top-color:var(--navy);border-radius:50%;
+  animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:12px;color:var(--t3);font-weight:600;}
+
+.refresh-btn{
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+  color:#fff;font-family:inherit;font-size:11px;font-weight:600;
+  padding:3px 10px;border-radius:4px;cursor:pointer;
+  display:flex;align-items:center;gap:4px;transition:background .15s;
+}
+.refresh-btn:hover{background:rgba(255,255,255,.25);}
+.refresh-btn .spin-ico{display:inline-block;transition:transform .5s;}
+.refresh-btn.spinning .spin-ico{animation:spin .7s linear infinite;}
+
+.status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.dot-ok{background:#22c55e;}
+.dot-loading{background:#f59e0b;animation:pulse 1s infinite;}
+.dot-err{background:#ef4444;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+@media(max-width:600px){
+  .tab-btn{padding:0 10px;font-size:11px;}
+  .tab-btn .tab-full{display:none;}
+  .tab-btn .tab-short{display:inline;}
+  .tab-btn .badge{display:none;}
+}
+@media(min-width:601px){.tab-btn .tab-short{display:none;}}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <div class="hub-header">
+    <div class="hub-title">
+      <span class="t-geps">GEPS</span>
+      <span class="t-dot">·</span>
+      <span class="t-ai">AI</span>
+      <span class="t-weekly">Weekly</span>
+      <span class="t-brief">Brief</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="hub-date" id="hub-date">—</div>
+      <button class="refresh-btn" id="refresh-btn" onclick="refreshCurrent()">
+        <span class="spin-ico">↻</span> 새로고침
+      </button>
+    </div>
+  </div>
+
+  <div class="tab-bar" id="tab-bar">
+    <button class="tab-btn active" data-tab="0" onclick="switchTab(0)">
+      <span class="ico">🌐</span>
+      <span class="tab-full">글로벌 매크로</span>
+      <span class="tab-short">매크로</span>
+      <span class="status-dot dot-loading" id="dot-0"></span>
+    </button>
+    <button class="tab-btn" data-tab="1" onclick="switchTab(1)">
+      <span class="ico">📈</span>
+      <span class="tab-full">밸류에이션</span>
+      <span class="tab-short">밸류</span>
+      <span class="status-dot dot-loading" id="dot-1"></span>
+    </button>
+    <button class="tab-btn" data-tab="2" onclick="switchTab(2)">
+      <span class="ico">🏭</span>
+      <span class="tab-full">섹터 분석</span>
+      <span class="tab-short">섹터</span>
+      <span class="status-dot dot-loading" id="dot-2"></span>
+    </button>
+    <button class="tab-btn" data-tab="3" onclick="switchTab(3)">
+      <span class="ico">💰</span>
+      <span class="tab-full">시장 수급</span>
+      <span class="tab-short">수급</span>
+      <span class="status-dot dot-loading" id="dot-3"></span>
+    </button>
+    <button class="tab-btn" data-tab="4" onclick="switchTab(4)">
+      <span class="ico">🔍</span>
+      <span class="tab-full">종목 수급 <span class="badge">KOSPI200+KQ150</span></span>
+      <span class="tab-short">종목</span>
+      <span class="status-dot dot-loading" id="dot-4"></span>
+    </button>
+  </div>
+
+  <div class="frame-area" id="frame-area">
+    <iframe class="tab-frame active" id="frame-0" src="위클리_데시보드_v3_.html"></iframe>
+    <iframe class="tab-frame" id="frame-1" data-src="valuation_dashboard.html"></iframe>
+    <iframe class="tab-frame" id="frame-2" data-src="sector_dashboard.html"></iframe>
+    <iframe class="tab-frame" id="frame-3" data-src="supply_dashboard.html"></iframe>
+    <iframe class="tab-frame" id="frame-4" data-src="stock_supply_dashboard.html"></iframe>
+    <div class="loading-overlay hidden" id="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loading-text">로딩 중...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var TABS = [
+  {id:0, label:'글로벌 매크로', src:'위클리_데시보드_v3_.html'},
+  {id:1, label:'밸류에이션',    src:'valuation_dashboard.html'},
+  {id:2, label:'섹터 분석',     src:'sector_dashboard.html'},
+  {id:3, label:'시장 수급',     src:'supply_dashboard.html'},
+  {id:4, label:'종목 수급',     src:'stock_supply_dashboard.html'}
+];
+var currentTab = 0;
+var loadedTabs = {0:true};
+
+function setDate(){
+  var d=new Date();
+  document.getElementById('hub-date').textContent =
+    d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
+}
+setDate();
+
+function switchTab(idx){
+  if(idx===currentTab) return;
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    b.classList.toggle('active',+b.dataset.tab===idx);
+  });
+  document.querySelectorAll('.tab-frame').forEach(function(f){
+    f.classList.remove('active');
+  });
+  var target=document.getElementById('frame-'+idx);
+  if(!loadedTabs[idx]){
+    showLoading(TABS[idx].label);
+    target.addEventListener('load',function onLoad(){
+      target.removeEventListener('load',onLoad);
+      setDot(idx,'ok'); loadedTabs[idx]=true; hideLoading();
+    });
+    target.src=target.dataset.src;
+    loadedTabs[idx]='loading';
+  }
+  target.classList.add('active');
+  currentTab=idx;
+}
+
+function refreshCurrent(){
+  var btn=document.getElementById('refresh-btn');
+  btn.classList.add('spinning'); setDot(currentTab,'loading');
+  var frame=document.getElementById('frame-'+currentTab);
+  showLoading(TABS[currentTab].label+' 새로고침 중...');
+  frame.addEventListener('load',function onLoad(){
+    frame.removeEventListener('load',onLoad);
+    setDot(currentTab,'ok'); hideLoading(); btn.classList.remove('spinning');
+  });
+  frame.src=frame.src||frame.dataset.src;
+  setTimeout(function(){btn.classList.remove('spinning');},3000);
+}
+
+function setDot(idx,state){
+  var dot=document.getElementById('dot-'+idx);
+  if(!dot) return;
+  dot.className='status-dot '+(state==='ok'?'dot-ok':state==='err'?'dot-err':'dot-loading');
+}
+function showLoading(txt){
+  document.getElementById('loading-text').textContent=txt||'로딩 중...';
+  document.getElementById('loading-overlay').classList.remove('hidden');
+}
+function hideLoading(){
+  document.getElementById('loading-overlay').classList.add('hidden');
+}
+document.getElementById('frame-0').addEventListener('load',function(){setDot(0,'ok');});
+document.addEventListener('keydown',function(e){
+  if(e.altKey){
+    if(e.key==='ArrowRight') switchTab(Math.min(currentTab+1,TABS.length-1));
+    if(e.key==='ArrowLeft')  switchTab(Math.max(currentTab-1,0));
+    ['1','2','3','4','5'].forEach(function(k,i){if(e.key===k) switchTab(i);});
+  }
+});
+</script>
+</body>
+</html>

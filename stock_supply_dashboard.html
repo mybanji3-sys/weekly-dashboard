@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>종목 수급 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="stock_supply.js"></script>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+:root{--bg:#f1f5f9;--bg2:#fff;--bg3:#f8fafc;--border:#94a3b8;--border2:#cbd5e1;
+  --text1:#1e293b;--text2:#334155;--text3:#64748b;--text4:#94a3b8;--navy:#1e3a8a;
+  --green:#15803d;--red:#b91c1c;--blue:#1e40af;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text1);padding:12px;font-size:12px;}
+.header{background:var(--navy);color:#fff;padding:8px 16px;border-radius:4px;
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.header-title{font-size:13px;font-weight:700;}
+.header-date{font-size:11px;color:#bfdbfe;font-weight:600;}
+.insight-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;
+  padding:10px 16px;margin-bottom:10px;font-size:13px;line-height:2;color:#1e3a8a;}
+.irow{margin-bottom:2px;}
+.sc{background:var(--bg2);border:1px solid var(--border);border-radius:4px;
+  padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.05);margin-bottom:10px;}
+.sc-title{color:var(--navy);font-weight:700;font-size:12px;
+  border-bottom:2px solid var(--navy);padding-bottom:4px;margin-bottom:10px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;}
+
+/* 뷰 탭 */
+.vtabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;}
+.vtab{font-size:12px;padding:4px 16px;border-radius:20px;cursor:pointer;
+  border:1px solid var(--border2);background:var(--bg3);color:var(--text3);}
+.vtab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+/* 기간·정렬 탭 */
+.tabs{display:flex;gap:3px;flex-wrap:wrap;}
+.tab{font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer;
+  color:var(--text3);border:1px solid var(--border2);background:var(--bg3);}
+.tab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.ptab{font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer;
+  border:1px solid var(--border2);background:var(--bg3);color:var(--text3);}
+.ptab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+/* 탑픽 배너 */
+.toppick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+@media(max-width:800px){.toppick-grid{grid-template-columns:1fr;}}
+.toppick-card{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;}
+.tp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.tp-title{font-size:12px;font-weight:700;color:var(--text2);}
+.tp-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;}
+.tp-item{display:flex;justify-content:space-between;align-items:center;
+  padding:5px 0;border-bottom:0.5px solid var(--border2);}
+.tp-item:last-child{border-bottom:none;}
+.tp-name{font-size:12px;font-weight:600;color:var(--text2);}
+.tp-code{font-size:10px;color:var(--text4);font-family:monospace;}
+.tp-val{font-size:13px;font-weight:700;}
+.tp-sec{font-size:10px;color:var(--text3);}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;}
+@media(max-width:800px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+.kpi{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;}
+.kpi-title{font-size:11px;color:var(--text3);margin-bottom:3px;}
+.kpi-num{font-size:20px;font-weight:700;}
+.kpi-sub{font-size:11px;color:var(--text4);margin-top:2px;}
+
+/* 2열 */
+.two-col{display:grid;grid-template-columns:55fr 45fr;gap:10px;}
+@media(max-width:1000px){.two-col{grid-template-columns:1fr;}}
+
+/* 테이블 */
+.tbl-wrap{overflow-y:auto;max-height:560px;}
+.stbl{width:100%;border-collapse:collapse;}
+.stbl th{background:var(--bg3);color:var(--text3);font-weight:600;
+  padding:6px 7px;border:0.5px solid var(--border2);text-align:center;
+  font-size:11px;position:sticky;top:0;z-index:1;cursor:pointer;user-select:none;}
+.stbl th:hover{background:#e2e8f0;}
+.stbl th .sort-icon{font-size:9px;margin-left:2px;color:var(--text4);}
+.stbl td{padding:5px 7px;border:0.5px solid var(--border2);vertical-align:middle;font-size:12px;}
+.stbl tr:hover td{background:#eff6ff;}
+.sname{font-weight:600;color:var(--text2);}
+.scode{font-size:10px;color:var(--text4);font-family:monospace;}
+.mkt-k{font-size:9px;padding:1px 4px;border-radius:2px;background:#dbeafe;color:#1e40af;font-weight:600;}
+.mkt-q{font-size:9px;padding:1px 4px;border-radius:2px;background:#fef9c3;color:#713f12;font-weight:600;}
+.pos{color:var(--green);font-weight:600;}
+.neg{color:var(--red);font-weight:600;}
+.neu{color:var(--text3);}
+.str-badge{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:600;white-space:nowrap;display:inline-block;}
+.s3{background:#fef9c3;color:#713f12;}
+.sfi{background:#dbeafe;color:#1e40af;}
+.sf{background:#eff6ff;color:#2563eb;}
+.si{background:#f0fdf4;color:#16a34a;}
+.sp{background:#fff7ed;color:#c2410c;}
+.sip{background:#f5f3ff;color:#5b21b6;}
+.s0{background:var(--bg3);color:var(--text4);}
+
+/* 수급 모멘텀 바 */
+.mom-wrap{display:flex;align-items:center;gap:4px;}
+.mom-bar-bg{flex:1;height:8px;background:#e2e8f0;border-radius:3px;overflow:hidden;position:relative;}
+.mom-bar-center{position:absolute;top:0;left:50%;width:1px;height:100%;background:var(--border);}
+.mom-bar-f{position:absolute;top:0;height:100%;border-radius:3px;}
+.mom-lbl{font-size:10px;font-weight:600;min-width:36px;text-align:right;}
+
+/* 섹터 테이블 색상 강조 */
+.strongest-fore{background:#eff6ff;}
+.strongest-inst{background:#f0fdf4;}
+.strongest-indv{background:#fff7ed;}
+
+/* 차트 */
+.chart-wrap{position:relative;width:100%;}
+.chart-wrap canvas{display:block;width:100%!important;}
+
+/* 드로어 */
+.sec-drawer{display:none;background:var(--bg3);border:0.5px solid var(--border2);
+  border-radius:4px;padding:8px;margin-top:6px;font-size:11px;}
+.sec-drawer.open{display:block;}
+.sec-drawer-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.sec-drawer-item{padding:3px 6px;background:var(--bg2);border-radius:3px;
+  border:0.5px solid var(--border2);}
+
+
+/* ── 화살표 수급강도 ─────────────────────────────────────
+   외인·기관·개인 3주체 한 줄 고정 너비 표시
+   화살표 개수 달라도 열 너비 고정 → 정렬 흔들림 없음
+── */
+.arrow-wrap{
+  display:flex;align-items:center;gap:0;
+  white-space:nowrap;font-family:'Pretendard',sans-serif;font-size:11px;
+}
+.arrow-item{
+  display:flex;align-items:center;
+  width:88px;          /* ★ 고정 너비: 라벨(28px) + 화살표(60px) */
+  flex-shrink:0;
+}
+.arrow-lbl{
+  font-weight:700;color:#475569;font-size:10px;
+  width:28px;          /* "외인"·"기관"·"개인" 고정 너비 */
+  flex-shrink:0;
+}
+.arrow-str{
+  display:inline-block;
+  width:60px;          /* 화살표 5개 고정 너비 */
+  letter-spacing:-2px;
+  font-weight:800;font-size:12px;
+  overflow:hidden;
+}
+.bullish{color:#2563eb;}
+.bearish{color:#dc2626;}
+.neutral{color:#94a3b8;}
+.view{display:none;} .view.active{display:block;}
+.caution{font-size:11px;color:var(--text3);border-top:1px solid var(--border2);
+  padding-top:6px;margin-top:6px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">&#9654; 종목 수급 대시보드 &mdash; KOSPI200 + KOSDAQ150 (350종목)</div>
+  <div class="header-date" id="base-date">기준일: &mdash;</div>
+</div>
+
+<div class="insight-box" id="insight-box">분석 중...</div>
+
+<div class="vtabs" id="view-tabs">
+  <div class="vtab active" data-view="overview">&#9632; 전체 개요</div>
+  <div class="vtab" data-view="sector">&#9632; 섹터별 수급</div>
+  <div class="vtab" data-view="stock">&#9632; 종목 순위</div>
+  <div class="vtab" data-view="joint">&#9632; 동시 순매수</div>
+</div>
+
+<!-- ═══ 뷰1: 전체 개요 ═══ -->
+<div class="view active" id="view-overview">
+
+  <!-- 탑픽 배너 -->
+  <div class="toppick-grid" id="toppick-grid"></div>
+
+  <div class="kpi-grid">
+    <div class="kpi" style="border-top:3px solid #2563eb;">
+      <div class="kpi-title">외국인 20일 합계</div>
+      <div class="kpi-num" id="kpi-fore">-</div>
+      <div class="kpi-sub" id="kpi-fore-sub">-</div>
+    </div>
+    <div class="kpi" style="border-top:3px solid #16a34a;">
+      <div class="kpi-title">기관 20일 합계</div>
+      <div class="kpi-num" id="kpi-inst">-</div>
+      <div class="kpi-sub" id="kpi-inst-sub">-</div>
+    </div>
+    <div class="kpi" style="border-top:3px solid #1e40af;">
+      <div class="kpi-title">외국인+기관 동시유입</div>
+      <div class="kpi-num" style="color:#1e40af;" id="kpi-fi">-</div>
+      <div class="kpi-sub">가장 강한 수급 신호</div>
+    </div>
+    <div class="kpi" style="border-top:3px solid #d97706;">
+      <div class="kpi-title">전주체 유입</div>
+      <div class="kpi-num" style="color:#d97706;" id="kpi-3star">-</div>
+      <div class="kpi-sub">외국인+기관+개인</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="sc">
+      <div class="sc-title">&#9632; 외국인+기관 동시유입 TOP20
+        <div class="tabs" id="pts-fi">
+          <div class="ptab active" data-p="20">20일</div>
+          <div class="ptab" data-p="5">5일</div>
+        </div>
+      </div>
+      <div class="chart-wrap" id="fi-chart-wrap"><canvas id="chart-fi"></canvas></div>
+    </div>
+    <div class="sc">
+      <div class="sc-title">&#9632; 핵심 종목 수급 현황</div>
+      <div class="tbl-wrap" style="max-height:560px;">
+        <table class="stbl">
+          <thead><tr>
+            <th style="text-align:left;cursor:default;">종목</th>
+            <th onclick="sortKey('f20')">외국인 20일<span class="sort-icon">↕</span></th>
+            <th onclick="sortKey('i20')">기관 20일<span class="sort-icon">↕</span></th>
+            <th onclick="sortKey('p20')">개인 20일<span class="sort-icon">↕</span></th>
+            <th style="cursor:default;">신호</th>
+          </tr></thead>
+          <tbody id="tbody-key"></tbody>
+        </table>
+      </div>
+      <div class="caution">&#10071; 반도체(삼성전자·SK하이닉스) = 외국인 대규모 차익실현, 기관+개인 흡수 구조</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 뷰2: 섹터별 수급 ═══ -->
+<div class="view" id="view-sector">
+  <div class="two-col">
+    <div class="sc">
+      <div class="sc-title">&#9632; 섹터별 외국인 순매수 (상위 8개)
+        <button id="btn-fore-more" onclick="toggleSecDrawer('fore')"
+          style="font-size:11px;padding:2px 10px;border-radius:3px;
+          border:1px solid var(--border2);background:var(--bg3);cursor:pointer;color:var(--text3);">
+          전체 보기 ▼
+        </button>
+      </div>
+      <div class="chart-wrap" id="sec-fore-wrap"><canvas id="chart-sec-fore"></canvas></div>
+      <div class="sec-drawer" id="drawer-fore"></div>
+    </div>
+    <div class="sc">
+      <div class="sc-title">&#9632; 섹터별 기관 순매수 (상위 8개)
+        <button id="btn-inst-more" onclick="toggleSecDrawer('inst')"
+          style="font-size:11px;padding:2px 10px;border-radius:3px;
+          border:1px solid var(--border2);background:var(--bg3);cursor:pointer;color:var(--text3);">
+          전체 보기 ▼
+        </button>
+      </div>
+      <div class="chart-wrap" id="sec-inst-wrap"><canvas id="chart-sec-inst"></canvas></div>
+      <div class="sec-drawer" id="drawer-inst"></div>
+    </div>
+  </div>
+
+  <div class="sc">
+    <div class="sc-title">&#9632; 섹터별 3주체 수급 비교 (20일)
+      <div class="tabs" id="pts-sector">
+        <div class="ptab active" data-p="20">20일</div>
+        <div class="ptab" data-p="5">5일</div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="stbl" id="tbl-sector">
+        <thead><tr>
+          <th style="text-align:left;cursor:default;">섹터</th>
+          <th onclick="sortSector('fore')">외국인<span class="sort-icon">↕</span></th>
+          <th onclick="sortSector('inst')">기관<span class="sort-icon">↕</span></th>
+          <th onclick="sortSector('indv')">개인<span class="sort-icon">↕</span></th>
+          <th style="cursor:default;">종목수</th>
+          <th style="text-align:left;cursor:default;">대표종목</th>
+        </tr></thead>
+        <tbody id="tbody-sector"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 뷰3: 종목 순위 ═══ -->
+<div class="view" id="view-stock">
+  <div class="sc">
+    <div class="sc-title">&#9632; 종목별 수급 순위 (KOSPI200 + KOSDAQ150)
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <div class="tabs" id="mkt-tabs">
+          <div class="tab active" data-mkt="all">전체</div>
+          <div class="tab" data-mkt="KOSPI200">코스피200</div>
+          <div class="tab" data-mkt="KOSDAQ150">코스닥150</div>
+        </div>
+        <div class="tabs" id="pts-stock">
+          <div class="ptab active" data-p="20">20일</div>
+          <div class="ptab" data-p="5">5일</div>
+        </div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table class="stbl" id="tbl-stock">
+        <thead><tr>
+          <th style="width:22px;cursor:default;">#</th>
+          <th style="text-align:left;cursor:default;min-width:120px;">종목</th>
+          <th onclick="sortStock('fore')">외국인<span class="sort-icon" id="si-fore">↓</span></th>
+          <th onclick="sortStock('inst')">기관<span class="sort-icon" id="si-inst">↕</span></th>
+          <th onclick="sortStock('indv')">개인<span class="sort-icon" id="si-indv">↕</span></th>
+          <th onclick="sortStock('sector')">섹터<span class="sort-icon" id="si-sector">↕</span></th>
+          <th style="min-width:140px;text-align:left;cursor:default;">수급강도</th>
+        </tr></thead>
+        <tbody id="tbody-stock"></tbody>
+      </table>
+    </div>
+    <div class="caution">
+      &#10071; 헤더 클릭 시 정렬 &nbsp;|&nbsp; 단위: 억원
+    </div>
+    <!-- 수급강도 설명 박스 -->
+    <div style="margin-top:8px;padding:8px 12px;background:#f0f9ff;border:1px solid #bae6fd;
+                border-radius:4px;font-size:11px;color:#0369a1;line-height:1.8;">
+      <strong>&#9654; 수급강도 읽는 법</strong><br>
+      최근 <strong>5일 평균 순매수</strong>가 직전 <strong>60일 평균</strong> 대비 얼마나 강한지를 Z-score로 표현합니다.<br>
+      <span style="color:#2563eb;font-weight:700;">↗ 화살표 많을수록</span> 60일 평균 대비 매수가 급증 중 &nbsp;|&nbsp;
+      <span style="color:#dc2626;font-weight:700;">↘ 화살표 많을수록</span> 60일 평균 대비 매도가 급증 중<br>
+      <span style="color:#64748b;">
+        ↗↗↗↗↗ Z≥2.0 &nbsp; ↗↗↗↗ Z≥1.0 &nbsp; ↗↗↗ Z≥0.5 &nbsp; ↗↗ Z≥0.0 &nbsp;
+        → 중립(-0.5~0) &nbsp; ↘↘ Z≥-1.0 &nbsp; ↘↘↘ Z≥-2.0 &nbsp; ↘↘↘↘↘ Z&lt;-3.0
+      </span><br>
+      <span style="color:#94a3b8;font-size:10px;">
+        ※ 마우스를 화살표 위에 올리면 정확한 Z-score와 금액이 표시됩니다 &nbsp;|&nbsp;
+        20일 탭: fz20/iz20 기준 &nbsp;|&nbsp; 5일 탭: fz5/iz5 기준
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 뷰4: 동시 순매수 ═══ -->
+<div class="view" id="view-joint">
+  <div class="two-col">
+    <div class="sc">
+      <div class="sc-title">&#9632; 외국인+기관 동시유입
+        <div class="tabs" id="pts-joint">
+          <div class="ptab active" data-p="20">20일</div>
+          <div class="ptab" data-p="5">5일</div>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="stbl">
+          <thead><tr>
+            <th style="width:22px;cursor:default;">#</th>
+            <th style="text-align:left;cursor:default;">종목</th>
+            <th onclick="sortJoint('fk')" style="cursor:pointer;">외국인<span id="ji-fore">↓</span></th>
+            <th onclick="sortJoint('ik')" style="cursor:pointer;">기관<span id="ji-inst">↕</span></th>
+            <th onclick="sortJoint('pk')" style="cursor:pointer;">개인<span id="ji-indv">↕</span></th>
+            <th onclick="sortJoint('sector')" style="cursor:pointer;text-align:left;">섹터<span id="ji-sector">↕</span></th>
+            <th style="text-align:left;cursor:default;">수급강도</th>
+          </tr></thead>
+          <tbody id="tbody-joint"></tbody>
+        </table>
+      </div>
+      <!-- 수급강도 설명 -->
+      <div style="margin-top:8px;padding:7px 11px;background:#f0f9ff;border:1px solid #bae6fd;
+                  border-radius:4px;font-size:10px;color:#0369a1;line-height:1.7;">
+        <strong>수급강도</strong> — 최근 5일 평균이 직전 60일 평균 대비 강도를 Z-score로 표현<br>
+        <span style="color:#2563eb;font-weight:700;">↗ 많을수록</span> 60일 대비 매수 급증 &nbsp;|&nbsp;
+        <span style="color:#dc2626;font-weight:700;">↘ 많을수록</span> 60일 대비 매도 급증 &nbsp;|&nbsp;
+        <span style="color:#94a3b8;">마우스 오버 시 Z-score 수치 확인 가능</span>
+      </div>
+    </div>
+    <div class="sc">
+      <div class="sc-title">&#9632; 외국인/기관/개인 동시순매수</div>
+      <div id="triple-empty" style="text-align:center;padding:30px;color:var(--text3);font-size:12px;">
+        전주체 동시유입 종목 없음<br>
+        <span style="font-size:11px;color:var(--text4);">외국인+기관 매수 시 개인이 반대 매도 중</span>
+      </div>
+      <div class="tbl-wrap" id="triple-wrap" style="display:none;">
+        <table class="stbl">
+          <thead><tr>
+            <th style="text-align:left;">종목</th>
+            <th>외국인</th><th>기관</th><th>개인</th>
+          </tr></thead>
+          <tbody id="tbody-triple"></tbody>
+        </table>
+      </div>
+      <hr style="border:none;border-top:0.5px solid var(--border2);margin:10px 0;">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:2px;">&#9654; 수급 모멘텀 수급증가 TOP10</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">
+        최근 5일 순매수 &gt; 20일 평균 대비 → 최근 매수 강도가 급증 중인 종목<br>
+        <span style="color:#2563eb;font-weight:600;">■ 외국인 수급증가</span> &nbsp; <span style="color:#16a34a;font-weight:600;">■ 기관 수급증가</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#2563eb;margin-bottom:4px;padding:3px 8px;background:#eff6ff;border-radius:3px;">외국인 수급증가 TOP10</div>
+          <table class="stbl">
+            <thead><tr>
+              <th style="text-align:left;cursor:default;">종목</th>
+              <th>외인 5일</th><th>기관 5일</th>
+              <th style="color:#2563eb;cursor:default;">외인 증가량</th>
+            </tr></thead>
+            <tbody id="tbody-fore-mom"></tbody>
+          </table>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#16a34a;margin-bottom:4px;padding:3px 8px;background:#f0fdf4;border-radius:3px;">기관 수급증가 TOP10</div>
+          <table class="stbl">
+            <thead><tr>
+              <th style="text-align:left;cursor:default;">종목</th>
+              <th>외인 5일</th><th>기관 5일</th>
+              <th style="color:#16a34a;cursor:default;">기관 증가량</th>
+            </tr></thead>
+            <tbody id="tbody-inst-mom"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var D = stockSupply;
+var CUR_PERIOD_FI    = '20';
+var CUR_PERIOD_SEC   = '20';
+var CUR_PERIOD_STOCK = '20';
+var CUR_PERIOD_JOINT = '20';
+var CUR_MKT    = 'all';
+var CUR_SORT   = 'fore';
+var CUR_SORT_DIR = -1;
+var CUR_SEC_SORT = 'fore';
+var CHARTS = {};
+
+document.getElementById('base-date').textContent = '기준일: ' + D.base_date + ' | ' + D.universe;
+
+function fmt(v){
+  var a=Math.abs(v), s=v>=0?'+':'-';
+  if(a>=100000) return s+(a/10000).toFixed(0)+'조';
+  if(a>=10000)  return s+(a/10000).toFixed(1)+'조';
+  return s+a.toLocaleString()+'억';
+}
+function cls(v){ return v>0?'pos':v<0?'neg':'neu'; }
+var SCLS={'★★★ 전주체유입':'s3','★★ 외국인+기관':'sfi','★★ 외국인+개인':'sf',
+  '★ 기관+개인':'sip','외국인단독':'sf','기관단독':'si','개인단독':'sp','없음':'s0'};
+function badge(s){return '<span class="str-badge '+(SCLS[s]||'s0')+'">'+s+'</span>';}
+
+/* ═══════════════════════════════════════════════════════════
+   화살표 수급강도 — 60일 표준편차 대비 Z-score 기반
+   ───────────────────────────────────────────────────────────
+   run_all.py가 k200/kq150 일별 시계열에서 계산하여 JS에 저장
+   fz5/fz20/iz5/iz20/pz5/pz20 : 60일 std 대비 Z-score
+
+   Z-score → 화살표 매핑:
+     Z ≥  2.0 → ↗×5  (60일 기준 최강 매수 이례)
+     Z ≥  1.0 → ↗×4
+     Z ≥  0.5 → ↗×3
+     Z ≥  0.0 → ↗×2  (중립 이상)
+     -0.5~0.0 → →×1  (중립)
+     Z ≥ -1.0 → ↘×2
+     Z ≥ -2.0 → ↘×3
+     Z ≥ -3.0 → ↘×4
+     Z <  -3.0→ ↘×5  (60일 기준 최강 매도 이례)
+   ═══════════════════════════════════════════════════════════ */
+
+function zsToArrow(z){
+  /* Z-score → { str, dir } */
+  var dir, arrow, count;
+  if(z >= 2.0)       { dir='bullish'; arrow='↗'; count=5; }
+  else if(z >= 1.0)  { dir='bullish'; arrow='↗'; count=4; }
+  else if(z >= 0.5)  { dir='bullish'; arrow='↗'; count=3; }
+  else if(z >= 0.0)  { dir='bullish'; arrow='↗'; count=2; }
+  else if(z >= -0.5) { dir='neutral'; arrow='→'; count=1; }
+  else if(z >= -1.0) { dir='bearish'; arrow='↘'; count=2; }
+  else if(z >= -2.0) { dir='bearish'; arrow='↘'; count=3; }
+  else if(z >= -3.0) { dir='bearish'; arrow='↘'; count=4; }
+  else               { dir='bearish'; arrow='↘'; count=5; }
+  var str = '';
+  for(var i=0;i<count;i++) str += arrow;
+  return { str:str, dir:dir };
+}
+
+/* ─── comboBadge(r, period): 기간별 Z-score 화살표 ─── */
+function comboBadge(r, period){
+  var p20 = (period !== '5');
+
+  /* 기간에 맞는 Z-score 키 선택 */
+  var fz = p20 ? (r.fz20||0) : (r.fz5||0);
+  var iz = p20 ? (r.iz20||0) : (r.iz5||0);
+  var pz = p20 ? (r.pz20||0) : (r.pz5||0);
+
+  /* Z-score 없는 경우 (구버전 JS) → 금액 부호로 fallback */
+  var hasFz = (r.fz5 !== undefined && r.fz20 !== undefined);
+  if(!hasFz){
+    /* fallback: 금액 방향만 표시 (run_all.py 재실행 필요 안내) */
+    var famt = p20 ? (r.f20||0) : (r.f5||0);
+    var iamt = p20 ? (r.i20||0) : (r.i5||0);
+    var pamt = p20 ? (r.p20||0) : (r.p5||0);
+    fz = famt > 0 ? 0.6 : famt < 0 ? -0.6 : 0;
+    iz = iamt > 0 ? 0.6 : iamt < 0 ? -0.6 : 0;
+    pz = pamt > 0 ? 0.6 : pamt < 0 ? -0.6 : 0;
+  }
+
+  var fA = zsToArrow(fz);
+  var iA = zsToArrow(iz);
+  var pA = zsToArrow(pz);
+
+  /* 툴팁: Z-score + 금액 */
+  var per  = p20 ? '20일' : '5일';
+  var fAmt = p20 ? (r.f20||0) : (r.f5||0);
+  var iAmt = p20 ? (r.i20||0) : (r.i5||0);
+  var pAmt = p20 ? (r.p20||0) : (r.p5||0);
+  var fTip = '외국인 '+per+' Z-score: '+(fz>=0?'+':'')+fz.toFixed(2)+
+             ' | '+(fAmt>=0?'+':'')+fAmt.toLocaleString()+'억 (60일 std 대비)';
+  var iTip = '기관 '  +per+' Z-score: '+(iz>=0?'+':'')+iz.toFixed(2)+
+             ' | '+(iAmt>=0?'+':'')+iAmt.toLocaleString()+'억';
+  var pTip = '개인 '  +per+' Z-score: '+(pz>=0?'+':'')+pz.toFixed(2)+
+             ' | '+(pAmt>=0?'+':'')+pAmt.toLocaleString()+'억';
+
+  return '<div class="arrow-wrap">' +
+    '<div class="arrow-item" title="'+fTip+'">' +
+      '<span class="arrow-lbl">외인</span>' +
+      '<span class="arrow-str '+fA.dir+'">'+fA.str+'</span>' +
+    '</div>' +
+    '<div class="arrow-item" title="'+iTip+'">' +
+      '<span class="arrow-lbl">기관</span>' +
+      '<span class="arrow-str '+iA.dir+'">'+iA.str+'</span>' +
+    '</div>' +
+    '<div class="arrow-item" title="'+pTip+'">' +
+      '<span class="arrow-lbl">개인</span>' +
+      '<span class="arrow-str '+pA.dir+'">'+pA.str+'</span>' +
+    '</div>' +
+  '</div>';
+}
+function mktB(m){return m==='KOSPI200'?'<span class="mkt-k">K200</span>':'<span class="mkt-q">KQ150</span>';}
+
+/* ── 인사이트 ── */
+(function(){
+  var f=D.summary.fore20_total, i=D.summary.inst20_total;
+  var sec=D.sector_supply;
+  var sell=sec.filter(function(s){return s.fore20<0;}).sort(function(a,b){return a.fore20-b.fore20;}).slice(0,2);
+  var buy =sec.filter(function(s){return s.fore20>0;}).sort(function(a,b){return b.fore20-a.fore20;}).slice(0,2);
+  var sem=D.all.find(function(r){return r.code==='A005930';}),
+      ski=D.all.find(function(r){return r.code==='A000660';});
+  var fi3=D.top_fi.slice(0,3);
+  var t='';
+  t+='<div class="irow">&#128199; 20일 외국인 합계: <strong style="color:'+(f>=0?'#15803d':'#b91c1c')+'">'+fmt(f)+'</strong>';
+  t+=' &nbsp; 기관 합계: <strong style="color:'+(i>=0?'#15803d':'#b91c1c')+'">'+fmt(i)+'</strong>';
+  t+=' &nbsp; 외국인+기관 동시유입: <strong style="color:#1e40af;">'+D.summary.fore_inst+'종목</strong></div>';
+  t+='<div class="irow">&#9660; 외국인 집중매도: '+sell.map(function(s){return'<strong>'+s.sector+'</strong>('+fmt(s.fore20)+')'}).join(', ');
+  t+=' &nbsp;&#9650; 집중매수: '+buy.map(function(s){return'<strong>'+s.sector+'</strong>('+fmt(s.fore20)+')'}).join(', ')+'</div>';
+  if(sem&&ski){
+    t+='<div class="irow" style="color:#1d4ed8;">&#128161; 삼성전자(외국인 '+fmt(sem.f20)+' / 기관 '+fmt(sem.i20)+') · SK하이닉스(외국인 '+fmt(ski.f20)+' / 기관 '+fmt(ski.i20)+') — 반도체 외국인 대규모 차익실현, 기관·개인 흡수 구조</div>';
+  }
+  t+='<div class="irow">&#9989; 외국인+기관 동시유입 TOP3: '+fi3.map(function(r){return'<strong>'+r.name+'</strong>(외 '+fmt(r.f20)+' / 기 '+fmt(r.i20)+')'}).join(', ')+'</div>';
+  document.getElementById('insight-box').innerHTML=t;
+})();
+
+/* ── KPI ── */
+(function(){
+  var s=D.summary;
+  function kv(id,v,cls_){ document.getElementById(id).innerHTML='<span class="'+cls_+'">'+fmt(v)+'</span>'; }
+  kv('kpi-fore',s.fore20_total,s.fore20_total>=0?'pos':'neg');
+  document.getElementById('kpi-fore-sub').textContent='유입 '+s.fore_inflow+'종목';
+  kv('kpi-inst',s.inst20_total,s.inst20_total>=0?'pos':'neg');
+  document.getElementById('kpi-inst-sub').textContent='유입 '+s.inst_inflow+'종목';
+  document.getElementById('kpi-fi').textContent=s.fore_inst+'종목';
+  document.getElementById('kpi-3star').textContent=s.triple+'종목';
+})();
+
+/* ── 탑픽 배너 ── */
+(function(){
+  var grid=document.getElementById('toppick-grid');
+  var configs=[
+    {title:'외국인 탑픽', badge:'외국인 20일 상위', color:'#2563eb',
+     data:D.all.slice().sort(function(a,b){return b.f20-a.f20;}).slice(0,5), key:'f20'},
+    {title:'기관 탑픽', badge:'기관 20일 상위', color:'#16a34a',
+     data:D.all.slice().sort(function(a,b){return b.i20-a.i20;}).slice(0,5), key:'i20'},
+    {title:'외국인+기관 동시유입', badge:'동시유입 강도순', color:'#1e40af',
+     data:D.top_fi.slice(0,5), key:'f20'},
+  ];
+  configs.forEach(function(cfg){
+    var card=document.createElement('div');
+    card.className='toppick-card';
+    card.style.borderTop='3px solid '+cfg.color;
+    var h='<div class="tp-header"><div class="tp-title">'+cfg.title+'</div>'+
+      '<div class="tp-badge" style="background:'+cfg.color+'20;color:'+cfg.color+'">'+cfg.badge+'</div></div>';
+    cfg.data.forEach(function(r){
+      var v=r[cfg.key]; var inst_v=r.i20;
+      h+='<div class="tp-item">'+
+        '<div><div class="tp-name">'+r.name+' '+mktB(r.market)+'</div>'+
+        '<div class="tp-code">'+r.code+' · '+r.sector+'</div></div>'+
+        '<div style="text-align:right;">'+
+          '<div class="tp-val '+cls(v)+'">'+fmt(v)+'</div>'+
+          (cfg.key==='f20'?'<div style="font-size:10px;color:var(--text3);">기관 '+fmt(r.i20)+'</div>':'')+
+        '</div></div>';
+    });
+    card.innerHTML=h;
+    grid.appendChild(card);
+  });
+})();
+
+/* ── 뷰 탭 ── */
+document.getElementById('view-tabs').addEventListener('click',function(e){
+  var tab=e.target.closest('.vtab'); if(!tab) return;
+  this.querySelectorAll('.vtab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active');
+  document.querySelectorAll('.view').forEach(function(el){el.classList.remove('active');});
+  var v=tab.dataset.view;
+  document.getElementById('view-'+v).classList.add('active');
+  if(v==='sector') renderSectorCharts(CUR_PERIOD_SEC);
+  if(v==='stock')  renderStockTable();
+  if(v==='joint')  renderJointTable(CUR_PERIOD_JOINT);
+});
+
+/* ── 핵심 종목 테이블 ── */
+(function(){
+  var KEY=['A005930','A000660','A373220','A005380','A000270','A034730','A079550','A028260','A290650','A347850'];
+  var allMap={};
+  D.all.forEach(function(r){allMap[r.code]=r;});
+  var tbody=document.getElementById('tbody-key');
+  KEY.forEach(function(code){
+    var r=allMap[code]; if(!r) return;
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td><div class="sname">'+r.name+' '+mktB(r.market)+'</div><div class="scode">'+r.code+'</div></td>'+
+      '<td style="text-align:right"><span class="'+cls(r.f20)+'">'+fmt(r.f20)+'</span></td>'+
+      '<td style="text-align:right"><span class="'+cls(r.i20)+'">'+fmt(r.i20)+'</span></td>'+
+      '<td style="text-align:right"><span class="'+cls(r.p20)+'">'+fmt(r.p20)+'</span></td>'+
+      '<td>'+comboBadge(r, CUR_PERIOD_JOINT)+'</td>';
+    tbody.appendChild(tr);
+  });
+})();
+
+/* ── FI 차트 ── */
+function renderFIChart(period){
+  var pk=period==='20';
+  var rows=D.all.filter(function(r){
+    var f=pk?r.f20:r.f5, i_=pk?r.i20:r.i5;
+    return f>0&&i_>0;
+  }).sort(function(a,b){return (pk?b.f20-a.f20:b.f5-a.f5)}).slice(0,20);
+  var h=Math.max(rows.length*28+70,200);
+  document.getElementById('fi-chart-wrap').style.height=h+'px';
+  if(CHARTS.fi) CHARTS.fi.destroy();
+  CHARTS.fi=new Chart(document.getElementById('chart-fi'),{
+    type:'bar',
+    data:{labels:rows.map(function(r){return r.name;}),
+      datasets:[
+        {label:'외국인',data:rows.map(function(r){return pk?r.f20:r.f5;}),backgroundColor:'rgba(37,99,235,.65)',borderRadius:3,borderWidth:0},
+        {label:'기관',  data:rows.map(function(r){return pk?r.i20:r.i5;}),backgroundColor:'rgba(22,163,74,.65)',borderRadius:3,borderWidth:0},
+      ]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:11},boxWidth:12}},
+        annotation:{annotations:{zero:{type:'line',xMin:0,xMax:0,borderColor:'#94a3b8',borderWidth:1}}}},
+      scales:{x:{ticks:{color:'#475569',font:{size:10},callback:function(v){var a=Math.abs(v);return(v>=0?'+':'-')+(a>=10000?(a/10000).toFixed(1)+'조':a.toLocaleString()+'억');}},grid:{color:'rgba(203,213,225,.4)'}},
+        y:{ticks:{color:'#334155',font:{size:12}},grid:{display:false}}}}
+  });
+}
+renderFIChart('20');
+document.getElementById('pts-fi').addEventListener('click',function(e){
+  var tab=e.target.closest('.ptab'); if(!tab) return;
+  this.querySelectorAll('.ptab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active'); CUR_PERIOD_FI=tab.dataset.p; renderFIChart(CUR_PERIOD_FI);
+});
+
+/* ── 섹터 차트 ── */
+function renderSectorCharts(period){
+  var pk=period==='20';
+  var fKey=pk?'fore20':'fore5', iKey=pk?'inst20':'inst5';
+  var secFore=D.sector_supply.slice().sort(function(a,b){return b[fKey]-a[fKey];});
+  var secInst=D.sector_supply.slice().sort(function(a,b){return b[iKey]-a[iKey];});
+  var top8F=secFore.slice(0,8), top8I=secInst.slice(0,8);
+
+  function mkChart(id,wrapId,top8,key,col){
+    var ht=Math.max(top8.length*28+70,200);
+    document.getElementById(wrapId).style.height=ht+'px';
+    if(CHARTS[id]) CHARTS[id].destroy();
+    CHARTS[id]=new Chart(document.getElementById(id),{
+      type:'bar',
+      data:{labels:top8.map(function(s){return s.sector;}),
+        datasets:[{data:top8.map(function(s){return s[key];}),
+          backgroundColor:top8.map(function(s){return s[key]>=0?col:'rgba(220,38,38,.6)';}),
+          borderRadius:3,borderWidth:0}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},
+          annotation:{annotations:{zero:{type:'line',xMin:0,xMax:0,borderColor:'#94a3b8',borderWidth:1}}}},
+        scales:{
+          x:{ticks:{color:'#475569',font:{size:10},callback:function(v){
+            var a=Math.abs(v);return(v>=0?'+':'-')+(a>=10000?(a/10000).toFixed(1)+'조':a.toLocaleString()+'억');}},
+            grid:{color:'rgba(203,213,225,.4)'}},
+          y:{ticks:{color:'#334155',font:{size:11}},grid:{display:false}}
+        }
+      }
+    });
+  }
+  mkChart('chart-sec-fore','sec-fore-wrap',top8F,fKey,'rgba(37,99,235,.7)');
+  mkChart('chart-sec-inst','sec-inst-wrap',top8I,iKey,'rgba(22,163,74,.7)');
+
+  /* 5번: 드로어에 외국인+기관 모두 표시 */
+  function buildDrawer(drawerId){
+    var drawer=document.getElementById(drawerId); if(!drawer) return;
+    var secMap={};
+    D.sector_supply.forEach(function(s){
+      secMap[s.sector]={f:s[fKey],i:s[iKey],sec:s.sector};
+    });
+    var shown=new Set(top8F.map(function(s){return s.sector;}).concat(top8I.map(function(s){return s.sector;})));
+    var rest=Object.values(secMap).filter(function(s){return !shown.has(s.sec);});
+    rest.sort(function(a,b){return b.f-a.f;});
+    var html='<div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;">나머지 섹터 — 외국인 / 기관</div>';
+    html+='<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+    html+='<tr style="background:var(--bg3);">';
+    html+='<th style="text-align:left;padding:4px 6px;border:0.5px solid var(--border2);">섹터</th>';
+    html+='<th style="text-align:right;padding:4px 6px;border:0.5px solid var(--border2);color:#2563eb;">외국인</th>';
+    html+='<th style="text-align:right;padding:4px 6px;border:0.5px solid var(--border2);color:#16a34a;">기관</th></tr>';
+    rest.forEach(function(s){
+      html+='<tr><td style="padding:3px 6px;border:0.5px solid var(--border2);font-weight:500;">'+s.sec+'</td>';
+      html+='<td style="text-align:right;padding:3px 6px;border:0.5px solid var(--border2);"><span class="'+cls(s.f)+'">'+fmt(s.f)+'</span></td>';
+      html+='<td style="text-align:right;padding:3px 6px;border:0.5px solid var(--border2);"><span class="'+cls(s.i)+'">'+fmt(s.i)+'</span></td></tr>';
+    });
+    html+='</table>';
+    drawer.innerHTML=html;
+  }
+  buildDrawer('drawer-fore');
+  buildDrawer('drawer-inst');
+
+  renderSectorTable(period);
+}
+
+function toggleSecDrawer(type){
+  var drawer=document.getElementById('drawer-'+type);
+  var btn=document.getElementById('btn-'+type+'-more');
+  if(drawer.classList.contains('open')){
+    drawer.classList.remove('open'); btn.textContent='전체 보기 ▼';
+  } else {
+    drawer.classList.add('open'); btn.textContent='접기 ▲';
+  }
+}
+
+document.getElementById('pts-sector').addEventListener('click',function(e){
+  var tab=e.target.closest('.ptab'); if(!tab) return;
+  this.querySelectorAll('.ptab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active'); CUR_PERIOD_SEC=tab.dataset.p;
+  renderSectorCharts(CUR_PERIOD_SEC);
+});
+
+/* ── 섹터 테이블 ── */
+var SEC_SORT='fore', SEC_DIR=-1;
+function renderSectorTable(period){
+  var pk=period==='20';
+  var data=D.sector_supply.slice();
+  var sortK=SEC_SORT==='fore'?(pk?'fore20':'fore5'):SEC_SORT==='inst'?(pk?'inst20':'inst5'):(pk?'indv20':'indv5');
+  data.sort(function(a,b){return SEC_DIR*(b[sortK]-a[sortK]);});
+  var tbody=document.getElementById('tbody-sector');
+  tbody.innerHTML='';
+  data.forEach(function(s){
+    var fv=pk?s.fore20:s.fore5, iv=pk?s.inst20:s.inst5, pv=pk?s.indv20:s.indv5;
+    var maxAbs=Math.max(Math.abs(fv),Math.abs(iv),Math.abs(pv));
+    var strongest=Math.abs(fv)===maxAbs?'fore':Math.abs(iv)===maxAbs?'inst':'indv';
+    var tr=document.createElement('tr');
+    var fc=Math.abs(fv)===maxAbs&&fv>0?'style="background:#eff6ff;font-weight:700;"':'';
+    var ic=Math.abs(iv)===maxAbs&&iv>0?'style="background:#f0fdf4;font-weight:700;"':'';
+    var pc=Math.abs(pv)===maxAbs&&pv>0?'style="background:#fff7ed;font-weight:700;"':'';
+    tr.innerHTML=
+      '<td style="font-size:12px;font-weight:600;">'+s.sector+'</td>'+
+      '<td style="text-align:right;" '+fc+'><span class="'+cls(fv)+'">'+fmt(fv)+'</span></td>'+
+      '<td style="text-align:right;" '+ic+'><span class="'+cls(iv)+'">'+fmt(iv)+'</span></td>'+
+      '<td style="text-align:right;" '+pc+'><span class="'+cls(pv)+'">'+fmt(pv)+'</span></td>'+
+      '<td style="text-align:center;color:var(--text3);">'+s.count+'</td>'+
+      '<td style="font-size:11px;color:var(--text3);">'+s.rep_stocks.join(', ')+'</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function sortSector(key){
+  if(SEC_SORT===key) SEC_DIR*=-1;
+  else{SEC_SORT=key;SEC_DIR=-1;}
+  renderSectorTable(CUR_PERIOD_SEC);
+}
+
+/* ── 종목 순위 테이블 ── */
+var STOCK_SORT='fore', STOCK_DIR=-1;
+function renderStockTable(){
+  var p=CUR_PERIOD_STOCK==='20';
+  var fk=p?'f20':'f5', ik=p?'i20':'i5', pk_=p?'p20':'p5';
+  var sortMap={fore:fk,inst:ik,indv:pk_,sector:'sector',strength:'strength'};
+  var sk=sortMap[STOCK_SORT]||fk;
+  var rows=D.all.filter(function(r){return CUR_MKT==='all'||r.market===CUR_MKT;});
+  rows.sort(function(a,b){
+    if(sk==='sector'||sk==='strength') return STOCK_DIR*(a[sk]<b[sk]?-1:a[sk]>b[sk]?1:0);
+    return STOCK_DIR*((b[sk]||0)-(a[sk]||0));
+  });
+
+  /* comboBadge → 전역 함수 참조 */
+
+  var tbody=document.getElementById('tbody-stock');
+  tbody.innerHTML='';
+  rows.slice(0,100).forEach(function(r,i){
+    var fv=r[fk]||0, iv=r[ik]||0, pv=r[pk_]||0;
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td style="text-align:center;color:var(--text4);font-size:11px;">'+(i+1)+'</td>'+
+      '<td style="text-align:left;"><div class="sname">'+r.name+' '+mktB(r.market)+'</div>'+
+        '<div class="scode">'+r.code+'</div></td>'+
+      '<td style="text-align:right"><span class="'+cls(fv)+'">'+fmt(fv)+'</span></td>'+
+      '<td style="text-align:right"><span class="'+cls(iv)+'">'+fmt(iv)+'</span></td>'+
+      '<td style="text-align:right"><span class="'+cls(pv)+'">'+fmt(pv)+'</span></td>'+
+      '<td style="text-align:left;font-size:11px;color:var(--text3);">'+r.sector+'</td>'+
+      '<td style="text-align:left;">'+comboBadge(r, CUR_PERIOD_STOCK)+'</td>';
+    tbody.appendChild(tr);
+  });
+  ['fore','inst','indv','sector','strength'].forEach(function(k){
+    var el=document.getElementById('si-'+k);
+    if(el) el.textContent=STOCK_SORT===k?(STOCK_DIR===-1?'↓':'↑'):'↕';
+  });
+}
+
+function sortStock(key){
+  if(STOCK_SORT===key) STOCK_DIR*=-1;
+  else{STOCK_SORT=key;STOCK_DIR=-1;}
+  renderStockTable();
+}
+
+document.getElementById('mkt-tabs').addEventListener('click',function(e){
+  var tab=e.target.closest('.tab'); if(!tab) return;
+  this.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active'); CUR_MKT=tab.dataset.mkt; renderStockTable();
+});
+document.getElementById('pts-stock').addEventListener('click',function(e){
+  var tab=e.target.closest('.ptab'); if(!tab) return;
+  this.querySelectorAll('.ptab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active'); CUR_PERIOD_STOCK=tab.dataset.p; renderStockTable();
+});
+
+/* ── 동시유입 테이블 ── */
+function renderJointTable(period){
+  var p=period==='20';
+  var fk=p?'f20':'f5', ik=p?'i20':'i5', pk_=p?'p20':'p5';
+
+  /* 외국인+기관 동시유입 테이블 */
+  var joint=D.all.filter(function(r){return r[fk]>0&&r[ik]>0;});
+  /* 정렬 적용 */
+  var jsk = JOINT_SORT==='fk'?fk:JOINT_SORT==='ik'?ik:JOINT_SORT==='pk'?pk_:'sector';
+  joint.sort(function(a,b){
+    if(jsk==='sector') return JOINT_DIR*(a[jsk]<b[jsk]?-1:a[jsk]>b[jsk]?1:0);
+    return JOINT_DIR*((b[jsk]||0)-(a[jsk]||0));
+  });
+  var tbody=document.getElementById('tbody-joint'); tbody.innerHTML='';
+  joint.forEach(function(r,i){
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td style="text-align:center;color:var(--text4);font-size:11px;">'+(i+1)+'</td>'+
+      '<td><div class="sname">'+r.name+' '+mktB(r.market)+'</div><div class="scode">'+r.code+'</div></td>'+
+      '<td style="text-align:right"><span class="pos">'+fmt(r[fk])+'</span></td>'+
+      '<td style="text-align:right"><span class="pos">'+fmt(r[ik])+'</span></td>'+
+      '<td style="text-align:right"><span class="'+cls(r[pk_])+'">'+fmt(r[pk_])+'</span></td>'+
+      '<td style="font-size:11px;color:var(--text3);">'+r.sector+'</td>'+
+      '<td>'+comboBadge(r, CUR_PERIOD_JOINT)+'</td>';
+    tbody.appendChild(tr);
+  });
+
+  /* 전주체 유입 */
+  var triple=D.all.filter(function(r){return r[fk]>0&&r[ik]>0&&r[pk_]>0;});
+  if(triple.length){
+    document.getElementById('triple-empty').style.display='none';
+    document.getElementById('triple-wrap').style.display='block';
+    var tb2=document.getElementById('tbody-triple'); tb2.innerHTML='';
+    triple.forEach(function(r){
+      var tr=document.createElement('tr');
+      tr.innerHTML=
+        '<td><div class="sname">'+r.name+' '+mktB(r.market)+'</div></td>'+
+        '<td style="text-align:right"><span class="pos">'+fmt(r[fk])+'</span></td>'+
+        '<td style="text-align:right"><span class="pos">'+fmt(r[ik])+'</span></td>'+
+        '<td style="text-align:right"><span class="pos">'+fmt(r[pk_])+'</span></td>';
+      tb2.appendChild(tr);
+    });
+  } else {
+    document.getElementById('triple-empty').style.display='block';
+    document.getElementById('triple-wrap').style.display='none';
+  }
+
+  /* 수급 모멘텀 가속 — 외국인/기관 분리 */
+  var fMom=D.all.filter(function(r){return r.fore_mom>0;})
+              .sort(function(a,b){return b.fore_mom-a.fore_mom;}).slice(0,10);
+  var iMom=D.all.filter(function(r){return r.inst_mom>0;})
+              .sort(function(a,b){return b.inst_mom-a.inst_mom;}).slice(0,10);
+  var maxFM=Math.max.apply(null,fMom.map(function(r){return r.fore_mom;}))||1;
+  var maxIM=Math.max.apply(null,iMom.map(function(r){return r.inst_mom;}))||1;
+
+  function momRow(r, momVal, maxVal, col){
+    var pct=Math.min(momVal/maxVal*100,100);
+    return '<tr>'+
+      '<td><div class="sname">'+r.name+' '+mktB(r.market)+'</div>'+
+           '<div class="scode">'+r.sector+'</div></td>'+
+      '<td style="text-align:right;font-size:11px;"><span class="'+cls(r.f5)+'">'+fmt(r.f5)+'</span></td>'+
+      '<td style="text-align:right;font-size:11px;"><span class="'+cls(r.i5)+'">'+fmt(r.i5)+'</span></td>'+
+      '<td style="padding:4px 7px;min-width:120px;">'+
+        '<div style="display:flex;align-items:center;gap:5px;">'+
+          '<div style="flex:1;height:10px;background:#e2e8f0;border-radius:3px;overflow:hidden;">'+
+            '<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:3px;"></div>'+
+          '</div>'+
+          '<span style="font-size:11px;font-weight:700;color:'+col+';min-width:52px;text-align:right;">'+
+            '+'+(momVal).toLocaleString()+'억</span>'+
+        '</div>'+
+      '</td></tr>';
+  }
+
+  var tbF=document.getElementById('tbody-fore-mom'); tbF.innerHTML='';
+  fMom.forEach(function(r){tbF.innerHTML+=momRow(r,r.fore_mom,maxFM,'#2563eb');});
+
+  var tbI=document.getElementById('tbody-inst-mom'); tbI.innerHTML='';
+  iMom.forEach(function(r){tbI.innerHTML+=momRow(r,r.inst_mom,maxIM,'#16a34a');});
+}
+
+var JOINT_SORT='fk', JOINT_DIR=-1;
+function sortJoint(key){
+  if(JOINT_SORT===key) JOINT_DIR*=-1;
+  else{JOINT_SORT=key; JOINT_DIR=-1;}
+  renderJointTable(CUR_PERIOD_JOINT);
+  ['fore','inst','indv','sector'].forEach(function(k){
+    var el=document.getElementById('ji-'+k);
+    var mk={'fore':'fk','inst':'ik','indv':'pk','sector':'sector'};
+    if(el) el.textContent=JOINT_SORT===mk[k]?(JOINT_DIR===-1?'↓':'↑'):'↕';
+  });
+}
+
+document.getElementById('pts-joint').addEventListener('click',function(e){
+  var tab=e.target.closest('.ptab'); if(!tab) return;
+  this.querySelectorAll('.ptab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active'); CUR_PERIOD_JOINT=tab.dataset.p; renderJointTable(CUR_PERIOD_JOINT);
+});
+</script>
+</body>
+</html>

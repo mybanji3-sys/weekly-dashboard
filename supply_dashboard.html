@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>수급 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="sector_supply.js"></script>
+<script src="sector_supply_series.js"></script>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+:root{--bg:#f1f5f9;--bg2:#fff;--bg3:#f8fafc;--border:#94a3b8;--border2:#cbd5e1;
+  --text1:#1e293b;--text2:#334155;--text3:#64748b;--text4:#94a3b8;--navy:#1e3a8a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text1);padding:12px;font-size:12px;}
+.header{background:var(--navy);color:#fff;padding:8px 16px;border-radius:4px;
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.header-title{font-size:13px;font-weight:700;}
+.header-date{font-size:11px;color:#bfdbfe;font-weight:600;}
+
+/* 인사이트 */
+.insight-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;
+  padding:10px 16px;margin-bottom:10px;font-size:13px;line-height:1.9;color:#1e3a8a;}
+.insight-row{margin-bottom:3px;}
+
+/* 섹션 */
+.section-card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;
+  padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.05);margin-bottom:10px;}
+.section-title{color:var(--navy);font-weight:700;font-size:11px;
+  border-bottom:2px solid var(--navy);padding-bottom:4px;margin-bottom:10px;
+  display:flex;justify-content:space-between;align-items:center;}
+
+/* 시장 탭 */
+.mkt-tabs{display:flex;gap:4px;margin-bottom:10px;}
+.mtab{font-size:11px;padding:3px 14px;border-radius:20px;cursor:pointer;
+  border:1px solid var(--border2);background:var(--bg3);color:var(--text3);}
+.mtab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+/* KPI 3개 */
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+@media(max-width:700px){.kpi-grid{grid-template-columns:1fr;}}
+.kpi-card{border:1px solid var(--border2);border-radius:8px;padding:12px 14px;}
+.kpi-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.kpi-name{font-size:11px;font-weight:700;color:var(--text2);}
+.kpi-sig{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;}
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.kpi-box{background:var(--bg3);border-radius:5px;padding:7px 9px;}
+.kpi-lbl{font-size:9px;color:var(--text3);margin-bottom:2px;}
+.kpi-num{font-size:15px;font-weight:700;}
+.pos{color:#15803d;} .neg{color:#b91c1c;} .neu{color:#64748b;}
+
+/* 투자자 탭 */
+.inv-tabs{display:flex;gap:3px;}
+.itab{font-size:10px;padding:2px 8px;border-radius:3px;cursor:pointer;
+  color:var(--text3);border:1px solid var(--border2);background:var(--bg3);}
+.itab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+/* 차트 */
+.chart-wrap{position:relative;width:100%;height:clamp(160px,22vw,240px);}
+.chart-wrap canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:800px){.two-col{grid-template-columns:1fr;}}
+
+/* 범례 */
+.legend{display:flex;gap:14px;margin-top:6px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);}
+.ldot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* 섹터 순위 */
+.rank-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:700px){.rank-grid{grid-template-columns:1fr;}}
+.rank-table{width:100%;border-collapse:collapse;font-size:11px;}
+.rank-table th{background:var(--bg3);color:var(--text3);font-weight:600;
+  padding:5px 8px;border:0.5px solid var(--border2);text-align:left;font-size:10px;}
+.rank-table td{padding:5px 8px;border:0.5px solid var(--border2);}
+.rank-table tr:hover td{background:var(--bg3);}
+.bar-mini{height:10px;border-radius:2px;display:inline-block;vertical-align:middle;}
+
+.tabs{display:flex;gap:3px;}
+.tab{font-size:10px;padding:2px 7px;border-radius:3px;cursor:pointer;
+  color:var(--text3);border:1px solid var(--border2);background:var(--bg3);}
+.tab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.caution{font-size:10px;color:var(--text4);border-top:1px solid var(--border2);
+  padding-top:5px;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">&#9654; 수급 대시보드 &mdash; 코스피 · 코스닥 투자자별 순매수 분석</div>
+  <div class="header-date" id="base-date">기준일: &mdash;</div>
+</div>
+
+<div class="insight-box" id="insight-box">분석 중...</div>
+
+<!-- 시장 탭 -->
+<div class="mkt-tabs">
+  <div class="mtab active" id="mt-kospi"  data-mkt="kospi">코스피 (IKS900)</div>
+  <div class="mtab"        id="mt-kosdaq" data-mkt="kosdaq">코스닥 (IKQ001)</div>
+</div>
+
+<!-- KPI: 외국인 / 기관 / 개인 -->
+<div class="kpi-grid" id="kpi-grid"></div>
+
+<!-- 누적 순매수 추이 -->
+<div class="section-card">
+  <div class="section-title">&#9632; 누적 순매수 추이 (억원)
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div class="inv-tabs" id="inv-tabs-cum">
+        <div class="itab active" data-inv="all">전체</div>
+        <div class="itab" data-inv="fore">외국인</div>
+        <div class="itab" data-inv="inst">기관</div>
+        <div class="itab" data-inv="indv">개인</div>
+      </div>
+      <div class="tabs" id="tabs-cum">
+        <div class="tab active" data-r="all">전체</div>
+        <div class="tab" data-r="1y">1년</div>
+        <div class="tab" data-r="6m">6개월</div>
+        <div class="tab" data-r="3m">3개월</div>
+      </div>
+    </div>
+  </div>
+  <div class="chart-wrap"><canvas id="chart-cum"></canvas></div>
+  <div class="legend" id="legend-cum">
+    <div class="legend-item"><div class="ldot" style="background:#2563eb;"></div>외국인</div>
+    <div class="legend-item"><div class="ldot" style="background:#16a34a;"></div>기관</div>
+    <div class="legend-item"><div class="ldot" style="background:#d97706;"></div>개인</div>
+  </div>
+</div>
+
+<!-- 주간 순매수 -->
+<div class="two-col">
+  <div class="section-card">
+    <div class="section-title">&#9632; 주간 순매수 — 외국인
+      <div class="tabs" id="tabs-fore">
+        <div class="tab active" data-r="1y">1년</div>
+        <div class="tab" data-r="6m">6개월</div>
+        <div class="tab" data-r="3m">3개월</div>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-fore-bar"></canvas></div>
+  </div>
+  <div class="section-card">
+    <div class="section-title">&#9632; 주간 순매수 — 기관 · 개인
+      <div class="inv-tabs" id="inv-tabs-bar">
+        <div class="itab active" data-inv="inst">기관</div>
+        <div class="itab" data-inv="indv">개인</div>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-inst-bar"></canvas></div>
+  </div>
+</div>
+
+<!-- 섹터별 외국인 순위 -->
+<div class="section-card">
+  <div class="section-title">&#9632; 섹터별 외국인 순매수 순위 (20일 기준)
+    <div class="inv-tabs" id="inv-tabs-rank">
+      <div class="itab active" data-inv="fore">외국인</div>
+      <div class="itab" data-inv="inst">기관</div>
+      <div class="itab" data-inv="indv">개인</div>
+    </div>
+  </div>
+  <div class="rank-grid">
+    <div>
+      <div style="font-size:10px;font-weight:600;color:#b91c1c;margin-bottom:5px;">&#9660; 순매도 상위</div>
+      <table class="rank-table" id="rank-sell"></table>
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:600;color:#15803d;margin-bottom:5px;">&#9650; 순매수 상위</div>
+      <table class="rank-table" id="rank-buy"></table>
+    </div>
+  </div>
+  <div class="caution">&#10071; 단위: 억원 | Local mn × 100 | QuantiWise Investor Activity</div>
+</div>
+
+<script>
+var SS = sectorSupply;
+var SER = typeof sectorSupplySeries !== 'undefined' ? sectorSupplySeries : {};
+document.getElementById('base-date').textContent = '기준일: ' + SS.base_date;
+
+var CUR_MKT = 'kospi';   // kospi | kosdaq
+var CUR_INV_CUM = 'all'; // all | fore | inst | indv
+var CUR_INV_BAR = 'inst';
+var CUR_INV_RANK = 'fore';
+var CUR_CUM_RANGE = 'all';
+var CHARTS = {};
+
+var MKT_MAP = {kospi:'IKS900', kosdaq:'IKQ001'};
+var INV_COL = {fore:'#2563eb', inst:'#16a34a', indv:'#d97706'};
+var INV_NM  = {fore:'외국인', inst:'기관', indv:'개인'};
+
+/* ── 포맷 ── */
+function fmt(v){
+  var a=Math.abs(v), s=v>=0?'+':'-';
+  if(a>=100000) return s+(a/10000).toFixed(0)+'조';
+  if(a>=10000)  return s+(a/10000).toFixed(1)+'조';
+  return s+a.toLocaleString()+'억';
+}
+function sigStyle(sig){
+  if(sig==='inflow')  return {label:'유입',bg:'#dcfce7',col:'#15803d'};
+  if(sig==='outflow') return {label:'유출',bg:'#fee2e2',col:'#b91c1c'};
+  return {label:'중립',bg:'#f1f5f9',col:'#64748b'};
+}
+
+/* ── 인사이트 자동 생성 ── */
+function buildInsight(){
+  var ksp = SS.sectors['IKS900'], kdq = SS.sectors['IKQ001'];
+  if(!ksp||!kdq) return;
+
+  // 코스피·코스닥 외국인 방향
+  var kf20 = ksp.summary.d20.fore, qf20 = kdq.summary.d20.fore;
+
+  // 섹터별 외국인 20일 순위 (코스피·코스닥 전체 제외)
+  var excl = new Set(['IKS900','IKQ001']);
+  var ranked = Object.values(SS.sectors)
+    .filter(function(s){return !excl.has(s.code);})
+    .map(function(s){return {name:s.name, val:s.summary.d20.fore};})
+    .sort(function(a,b){return a.val-b.val;});
+
+  var topSell = ranked.slice(0,3);
+  var topBuy  = ranked.slice(-3).reverse();
+
+  var t = '<div class="insight-row"><strong>&#128205; 코스피 외국인 20일:</strong> ';
+  t += '<span style="color:'+(kf20>=0?'#15803d':'#b91c1c')+'"><strong>'+fmt(kf20)+'</strong></span>';
+  t += ' &nbsp; <strong>코스닥 외국인 20일:</strong> ';
+  t += '<span style="color:'+(qf20>=0?'#15803d':'#b91c1c')+'"><strong>'+fmt(qf20)+'</strong></span>';
+  t += '</div>';
+
+  // 핵심 문장: 최대 순매도 섹터
+  var bigSell = topSell[0];
+  var bigBuy  = topBuy[0];
+  t += '<div class="insight-row">&#9660; 외국인 순매도: ';
+  topSell.forEach(function(s,i){
+    t += '<strong>'+s.name+'</strong>('+fmt(s.val)+')';
+    if(i<topSell.length-1) t += ', ';
+  });
+  t += '</div>';
+  t += '<div class="insight-row">&#9650; 외국인 순매수: ';
+  topBuy.forEach(function(s,i){
+    t += '<strong>'+s.name+'</strong>('+fmt(s.val)+')';
+    if(i<topBuy.length-1) t += ', ';
+  });
+  t += '</div>';
+
+  // 인사이트 문장
+  if(kf20 < 0 && qf20 > 0){
+    t += '<div class="insight-row" style="color:#1d4ed8;">&#128161; 외국인이 코스피를 팔면서 코스닥으로 이동하는 패턴. ';
+    if(bigSell) t += bigSell.name+'('+fmt(bigSell.val)+') 집중 매도 → ';
+    if(bigBuy)  t += bigBuy.name+'('+fmt(bigBuy.val)+') 순매수 유입.</div>';
+  } else if(kf20 > 0 && qf20 > 0){
+    t += '<div class="insight-row" style="color:#15803d;">&#128161; 코스피·코스닥 동시 유입. 강한 수급 개선 국면.</div>';
+  } else if(kf20 < 0 && qf20 < 0){
+    t += '<div class="insight-row" style="color:#b91c1c;">&#128161; 코스피·코스닥 동시 유출. 수급 공백 — 개인 매수로 지수 지지 중.</div>';
+  }
+
+  document.getElementById('insight-box').innerHTML = t;
+}
+buildInsight();
+
+/* ── KPI 렌더 ── */
+function renderKPI(){
+  var mkt = MKT_MAP[CUR_MKT];
+  var s = SS.sectors[mkt];
+  if(!s) return;
+  var grid = document.getElementById('kpi-grid');
+  grid.innerHTML = '';
+  var colors = {fore:'#2563eb', inst:'#16a34a', indv:'#d97706'};
+
+  ['fore','inst','indv'].forEach(function(key){
+    var d5=s.summary.d5[key], d20=s.summary.d20[key];
+    var sig=s.summary.signal[key];
+    var st=sigStyle(sig);
+    var card=document.createElement('div');
+    card.className='kpi-card';
+    card.style.borderTop='3px solid '+colors[key];
+    var cls5=d5>=0?'pos':d5<0?'neg':'neu';
+    var cls20=d20>=0?'pos':d20<0?'neg':'neu';
+    card.innerHTML=
+      '<div class="kpi-top">'+
+        '<div class="kpi-name">'+INV_NM[key]+'</div>'+
+        '<div class="kpi-sig" style="background:'+st.bg+';color:'+st.col+'">'+st.label+'</div>'+
+      '</div>'+
+      '<div class="kpi-row">'+
+        '<div class="kpi-box"><div class="kpi-lbl">최근 5일</div>'+
+          '<div class="kpi-num '+cls5+'">'+fmt(d5)+'</div></div>'+
+        '<div class="kpi-box"><div class="kpi-lbl">최근 20일</div>'+
+          '<div class="kpi-num '+cls20+'">'+fmt(d20)+'</div></div>'+
+      '</div>';
+    grid.appendChild(card);
+  });
+}
+renderKPI();
+
+/* ── 시장 탭 ── */
+document.getElementById('mt-kospi').addEventListener('click',function(){
+  CUR_MKT='kospi';
+  document.querySelectorAll('.mtab').forEach(function(t){t.classList.remove('active');});
+  this.classList.add('active');
+  renderKPI(); updateCumChart(); updateBarChart('fore','chart-fore-bar','1y'); updateBarChart(CUR_INV_BAR,'chart-inst-bar','1y');
+});
+document.getElementById('mt-kosdaq').addEventListener('click',function(){
+  CUR_MKT='kosdaq';
+  document.querySelectorAll('.mtab').forEach(function(t){t.classList.remove('active');});
+  this.classList.add('active');
+  renderKPI(); updateCumChart(); updateBarChart('fore','chart-fore-bar','1y'); updateBarChart(CUR_INV_BAR,'chart-inst-bar','1y');
+});
+
+/* ── 누적 차트 ── */
+function getCumData(range){
+  var mkt=MKT_MAP[CUR_MKT];
+  var ser=SER[mkt]||{dates:[],fore:[],inst:[],indv:[]};
+  var base=new Date(SS.base_date);
+  var from=range==='all'?new Date('2019-01-01')
+    :range==='1y'?new Date(base.getFullYear()-1,base.getMonth(),base.getDate())
+    :range==='6m'?new Date(base.getFullYear(),base.getMonth()-6,base.getDate())
+    :new Date(base.getFullYear(),base.getMonth()-3,base.getDate());
+  var idx=ser.dates.findIndex(function(d){return new Date(d)>=from;});
+  if(idx<0)idx=0;
+  return {
+    dates:ser.dates.slice(idx),
+    fore:ser.fore.slice(idx), inst:ser.inst.slice(idx), indv:ser.indv.slice(idx)
+  };
+}
+
+function updateCumChart(){
+  var data=getCumData(CUR_CUM_RANGE);
+  var inv=CUR_INV_CUM;
+  var datasets=[];
+  if(inv==='all'||inv==='fore') datasets.push({label:'외국인',data:data.fore,borderColor:'#2563eb',borderWidth:1.5,pointRadius:0,tension:0.2,fill:false});
+  if(inv==='all'||inv==='inst') datasets.push({label:'기관',  data:data.inst,borderColor:'#16a34a',borderWidth:1.5,pointRadius:0,tension:0.2,fill:false});
+  if(inv==='all'||inv==='indv') datasets.push({label:'개인',  data:data.indv,borderColor:'#d97706',borderWidth:1.5,pointRadius:0,tension:0.2,fill:false});
+
+  if(CHARTS.cum) CHARTS.cum.destroy();
+  CHARTS.cum=new Chart(document.getElementById('chart-cum'),{
+    type:'line',
+    data:{labels:data.dates,datasets:datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:datasets.length>1,labels:{font:{size:10},boxWidth:12}},
+        annotation:{annotations:{zero:{type:'line',yMin:0,yMax:0,borderColor:'#94a3b8',borderWidth:1}}}},
+      scales:{
+        x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:10,maxRotation:0},grid:{color:'rgba(203,213,225,.4)'}},
+        y:{ticks:{color:'#475569',font:{size:9},callback:function(v){
+          var a=Math.abs(v);return(v>=0?'+':'-')+(a>=10000?(a/10000).toFixed(0)+'조':(a/1000).toFixed(0)+'천');}},
+          grid:{color:'rgba(203,213,225,.4)'}}
+      }}
+  });
+}
+updateCumChart();
+
+/* 누적 차트 탭 */
+document.getElementById('tabs-cum').addEventListener('click',function(e){
+  var tab=e.target.closest('.tab'); if(!tab) return;
+  this.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active');
+  CUR_CUM_RANGE=tab.dataset.r;
+  updateCumChart();
+});
+document.getElementById('inv-tabs-cum').addEventListener('click',function(e){
+  var tab=e.target.closest('.itab'); if(!tab) return;
+  this.querySelectorAll('.itab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active');
+  CUR_INV_CUM=tab.dataset.inv;
+  updateCumChart();
+});
+
+/* ── 주간 바 차트 ── */
+function getWeeklySlice(inv, range){
+  var mkt=MKT_MAP[CUR_MKT];
+  var s=SS.sectors[mkt];
+  if(!s) return {labels:[],vals:[]};
+  var base=new Date(SS.base_date);
+  var from=range==='1y'?new Date(base.getFullYear()-1,base.getMonth(),base.getDate())
+    :range==='6m'?new Date(base.getFullYear(),base.getMonth()-6,base.getDate())
+    :new Date(base.getFullYear(),base.getMonth()-3,base.getDate());
+  var idx=s.weekly.dates.findIndex(function(d){return new Date(d)>=from;});
+  if(idx<0)idx=0;
+  return {labels:s.weekly.dates.slice(idx), vals:s.weekly[inv].slice(idx)};
+}
+
+function updateBarChart(inv, canvasId, range){
+  var col=INV_COL[inv];
+  var sl=getWeeklySlice(inv,range);
+  if(CHARTS[canvasId]) CHARTS[canvasId].destroy();
+  CHARTS[canvasId]=new Chart(document.getElementById(canvasId),{
+    type:'bar',
+    data:{labels:sl.labels,datasets:[{
+      label:INV_NM[inv],
+      data:sl.vals,
+      backgroundColor:sl.vals.map(function(v){return v>=0?col+'99':'rgba(220,38,38,.55)';}),
+      borderColor:sl.vals.map(function(v){return v>=0?col:'#dc2626';}),
+      borderWidth:1,borderRadius:2
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        annotation:{annotations:{zero:{type:'line',yMin:0,yMax:0,borderColor:'#94a3b8',borderWidth:1}}}},
+      scales:{
+        x:{ticks:{color:'#94a3b8',font:{size:8},maxTicksLimit:12,maxRotation:0},grid:{display:false}},
+        y:{ticks:{color:'#475569',font:{size:9},callback:function(v){
+          var a=Math.abs(v);return(v>=0?'+':'-')+(a>=10000?(a/10000).toFixed(1)+'조':(a/1000).toFixed(0)+'천억');}},
+          grid:{color:'rgba(203,213,225,.4)'}}
+      }}
+  });
+}
+updateBarChart('fore','chart-fore-bar','1y');
+updateBarChart('inst','chart-inst-bar','1y');
+
+document.getElementById('tabs-fore').addEventListener('click',function(e){
+  var tab=e.target.closest('.tab'); if(!tab) return;
+  this.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active');
+  updateBarChart('fore','chart-fore-bar',tab.dataset.r);
+});
+document.getElementById('inv-tabs-bar').addEventListener('click',function(e){
+  var tab=e.target.closest('.itab'); if(!tab) return;
+  this.querySelectorAll('.itab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active');
+  CUR_INV_BAR=tab.dataset.inv;
+  updateBarChart(CUR_INV_BAR,'chart-inst-bar','1y');
+});
+
+/* ── 섹터 순위 ── */
+function renderRank(inv){
+  var excl=new Set(['IKS900','IKQ001']);
+  var items=Object.values(SS.sectors)
+    .filter(function(s){return !excl.has(s.code);})
+    .map(function(s){return {name:s.name,val:s.summary.d20[inv],code:s.code};})
+    .sort(function(a,b){return a.val-b.val;});
+
+  var sells=items.slice(0,8);
+  var buys =items.slice(-8).reverse();
+  var maxAbs=Math.max.apply(null,items.map(function(x){return Math.abs(x.val);}));
+
+  function buildTable(id,rows,isPositive){
+    var tbl=document.getElementById(id);
+    var col=isPositive?INV_COL[inv]:'#dc2626';
+    tbl.innerHTML='<tr><th>섹터</th><th style="text-align:right;">20일 순매수</th><th style="width:80px;">수준</th></tr>';
+    rows.forEach(function(r){
+      var pct=Math.min(Math.abs(r.val)/maxAbs*100,100);
+      var tr=document.createElement('tr');
+      tr.innerHTML=
+        '<td style="font-size:11px;font-weight:500;">'+r.name+'</td>'+
+        '<td style="text-align:right;font-size:11px;font-weight:600;color:'+(r.val>=0?'#15803d':'#b91c1c')+'">'+fmt(r.val)+'</td>'+
+        '<td><div style="height:8px;background:#f1f5f9;border-radius:2px;overflow:hidden;">'+
+          '<div class="bar-mini" style="width:'+pct+'%;background:'+col+';height:100%;"></div></div></td>';
+      tbl.appendChild(tr);
+    });
+  }
+  buildTable('rank-sell',sells,false);
+  buildTable('rank-buy', buys, true);
+}
+renderRank('fore');
+
+document.getElementById('inv-tabs-rank').addEventListener('click',function(e){
+  var tab=e.target.closest('.itab'); if(!tab) return;
+  this.querySelectorAll('.itab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active');
+  CUR_INV_RANK=tab.dataset.inv;
+  renderRank(CUR_INV_RANK);
+});
+
+var RO=new ResizeObserver(function(){Object.values(CHARTS).forEach(function(c){c.resize();});});
+document.querySelectorAll('.chart-wrap').forEach(function(el){RO.observe(el);});
+</script>
+</body>
+</html>

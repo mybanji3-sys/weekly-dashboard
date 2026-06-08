@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>글로벌 밸류에이션 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="valuation_data.js"></script>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+
+/* ── 위클리 대시보드 동일 색상 체계 ── */
+:root {
+  --bg:       #f1f5f9;
+  --bg2:      #ffffff;
+  --bg3:      #f8fafc;
+  --border:   #94a3b8;
+  --border2:  #cbd5e1;
+  --text1:    #1e293b;
+  --text2:    #334155;
+  --text3:    #64748b;
+  --text4:    #94a3b8;
+  --navy:     #1e3a8a;
+  --blue:     #2563eb;
+  --green:    #16a34a;
+  --red:      #dc2626;
+  --yellow:   #d97706;
+  --purple:   #7c3aed;
+  --orange:   #ea580c;
+  --accent:   #3b82f6;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Pretendard', sans-serif;
+  background: var(--bg);
+  color: var(--text1);
+  padding: 12px;
+}
+
+/* ── 헤더 (위클리와 동일) ── */
+.header {
+  background: var(--navy);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+}
+.header-title { font-size: 13px; font-weight: 700; }
+.header-date  { font-size: 11px; color: #bfdbfe; font-weight: 600; }
+
+/* ── KPI 카드 ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+@media(max-width:768px){ .kpi-grid{ grid-template-columns:repeat(2,1fr); } }
+
+.kpi-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  border-top: 3px solid transparent;
+}
+.kpi-card.blue   { border-top-color: var(--blue); }
+.kpi-card.green  { border-top-color: var(--green); }
+.kpi-card.yellow { border-top-color: var(--yellow); }
+.kpi-card.purple { border-top-color: var(--purple); }
+
+.kpi-label { font-size: 10px; color: var(--text3); font-weight: 600; letter-spacing:.3px; margin-bottom:4px; }
+.kpi-value { font-size: 22px; font-weight: 700; line-height:1; margin-bottom:3px; color: var(--text1); }
+.kpi-card.blue   .kpi-value { color: var(--blue); }
+.kpi-card.green  .kpi-value { color: var(--green); }
+.kpi-card.yellow .kpi-value { color: var(--yellow); }
+.kpi-card.purple .kpi-value { color: var(--purple); }
+.kpi-sub { font-size: 11px; color: var(--text3); }
+.kpi-signal {
+  display: inline-block;
+  font-size: 10px; padding: 1px 6px;
+  border-radius: 3px; margin-top: 4px; font-weight: 600;
+}
+.sig-low  { background:#dcfce7; color:#15803d; }
+.sig-high { background:#fee2e2; color:#b91c1c; }
+.sig-mid  { background:#dbeafe; color:#1d4ed8; }
+
+/* ── 섹션 카드 (위클리와 동일) ── */
+.section-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.section-title {
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 11px;
+  border-bottom: 2px solid var(--navy);
+  padding-bottom: 4px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ── 탭 ── */
+.tabs { display:flex; gap:4px; }
+.tab {
+  font-size: 10px; padding: 2px 8px;
+  border-radius: 3px; cursor: pointer;
+  color: var(--text3);
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  transition: all .15s;
+}
+.tab:hover { color: var(--text1); border-color: var(--border); }
+.tab.active {
+  background: var(--navy); color: #fff;
+  border-color: var(--navy);
+}
+
+/* ── 반응형 차트 래퍼
+       ResizeObserver 로 처리하므로 height는 최솟값만 보장 ── */
+.chart-outer {
+  position: relative;
+  width: 100%;
+  /* 뷰포트 너비 기반으로 높이 결정 — 창 변경 시 자동 반영 */
+  height: clamp(160px, 22vw, 260px);
+}
+.chart-outer canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ── 2·4컬럼 그리드 ── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.four-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media(max-width:900px) {
+  .two-col  { grid-template-columns: 1fr; }
+  .four-row { grid-template-columns: 1fr; }
+}
+
+/* ── 글로벌 비교 바 ── */
+.gbar-row {
+  display: flex; align-items: center;
+  gap: 8px; margin-bottom: 6px;
+}
+.gbar-label {
+  width: 90px; font-size: 11px;
+  color: var(--text3); flex-shrink: 0;
+}
+/* 코스피·코스닥 강조 */
+.gbar-row.hl .gbar-label {
+  color: var(--navy); font-weight: 700; font-size: 12px;
+}
+.gbar-row.hl .gbar-track {
+  outline: 1px solid var(--border);
+  border-radius: 3px;
+}
+.gbar-track {
+  flex: 1; height: 19px;
+  background: var(--bg3);
+  border-radius: 3px; overflow: hidden;
+}
+.gbar-fill {
+  height: 100%; border-radius: 3px;
+  display: flex; align-items: center;
+  padding-left: 6px;
+  font-size: 10px; font-weight: 700;
+  color: #fff; white-space: nowrap;
+}
+.gbar-val {
+  min-width: 42px; text-align: right;
+  color: var(--text3); font-size: 11px; flex-shrink: 0;
+}
+
+/* ── 범례 ── */
+.legend {
+  display: flex; flex-wrap: wrap;
+  gap: 10px; margin-top: 6px;
+}
+.legend-item {
+  display: flex; align-items: center;
+  gap: 4px; font-size: 10px; color: var(--text3);
+}
+.legend-line  { width:18px; height:2px; flex-shrink:0; }
+.legend-band  { width:18px; height:7px; border-radius:2px; flex-shrink:0; }
+
+/* ── 주석 ── */
+.caution {
+  font-size: 10px; color: var(--text4);
+  border-top: 1px solid var(--border2);
+  padding-top: 6px; margin-top: 8px;
+}
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="header">
+  <div class="header-title">▶ 글로벌 밸류에이션 대시보드 — 코스피 · 코스닥 · 글로벌 P/E · P/B</div>
+  <div class="header-date" id="base-date">기준일: —</div>
+</div>
+
+<!-- KPI -->
+<div class="kpi-grid">
+  <div class="kpi-card blue">
+    <div class="kpi-label">코스피 Fwd P/E</div>
+    <div class="kpi-value" id="kpi-kospi-pe">—</div>
+    <div class="kpi-sub"   id="kpi-kospi-pe-avg">6년 평균 —</div>
+    <div class="kpi-signal" id="kpi-kospi-pe-sig">—</div>
+  </div>
+  <div class="kpi-card green">
+    <div class="kpi-label">코스피 Fwd P/B</div>
+    <div class="kpi-value" id="kpi-kospi-pb">—</div>
+    <div class="kpi-sub"   id="kpi-kospi-pb-avg">6년 평균 —</div>
+    <div class="kpi-signal" id="kpi-kospi-pb-sig">—</div>
+  </div>
+  <div class="kpi-card yellow">
+    <div class="kpi-label">코스닥 Fwd P/E</div>
+    <div class="kpi-value" id="kpi-kosdaq-pe">—</div>
+    <div class="kpi-sub"   id="kpi-kosdaq-pe-avg">6년 평균 —</div>
+    <div class="kpi-signal" id="kpi-kosdaq-pe-sig">—</div>
+  </div>
+  <div class="kpi-card purple">
+    <div class="kpi-label">코스닥 Fwd P/B</div>
+    <div class="kpi-value" id="kpi-kosdaq-pb">—</div>
+    <div class="kpi-sub"   id="kpi-kosdaq-pb-avg">6년 평균 —</div>
+    <div class="kpi-signal" id="kpi-kosdaq-pb-sig">—</div>
+  </div>
+</div>
+
+<!-- 글로벌 비교 바 -->
+<div class="two-col" style="margin-bottom:8px;">
+  <div class="section-card">
+    <div class="section-title">■ 글로벌 P/E 비교 (현재 스냅샷)</div>
+    <div id="pe-bar-container"></div>
+    <div class="caution">※ 코스피·코스닥: Fwd.12M (QuantiWise) / 글로벌: Trailing ETF 기준</div>
+  </div>
+  <div class="section-card">
+    <div class="section-title">■ 글로벌 P/B 비교 (현재 스냅샷)</div>
+    <div id="pb-bar-container"></div>
+    <div class="caution">※ 글로벌 P/B: ETF (SPY / QQQ / EWJ / EWH / FXI / EZU) 기준</div>
+  </div>
+</div>
+
+<!-- 4개 밴드 차트: 코스피PE → 코스피PB → 코스닥PE → 코스닥PB -->
+<div class="four-row">
+
+  <div class="section-card">
+    <div class="section-title">■ 코스피 Fwd P/E 밴드
+      <div class="tabs">
+        <div class="tab active" onclick="setRange('kospi-pe','all',this)">전체</div>
+        <div class="tab" onclick="setRange('kospi-pe','3y',this)">3년</div>
+        <div class="tab" onclick="setRange('kospi-pe','1y',this)">1년</div>
+      </div>
+    </div>
+    <div class="chart-outer" id="outer-kospi-pe">
+      <canvas id="chart-kospi-pe" role="img" aria-label="코스피 PER 밴드 차트"></canvas>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-line" style="background:#2563eb;"></div>P/E</div>
+      <div class="legend-item"><div class="legend-line" style="border-top:1px dashed #16a34a;background:none;width:18px;"></div>평균</div>
+      <div class="legend-item"><div class="legend-band" style="background:#d97706;opacity:.4;"></div>±1σ</div>
+      <div class="legend-item"><div class="legend-band" style="background:#dc2626;opacity:.3;"></div>±2σ</div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">■ 코스피 Fwd P/B 밴드
+      <div class="tabs">
+        <div class="tab active" onclick="setRange('kospi-pb','all',this)">전체</div>
+        <div class="tab" onclick="setRange('kospi-pb','3y',this)">3년</div>
+        <div class="tab" onclick="setRange('kospi-pb','1y',this)">1년</div>
+      </div>
+    </div>
+    <div class="chart-outer" id="outer-kospi-pb">
+      <canvas id="chart-kospi-pb" role="img" aria-label="코스피 PBR 밴드 차트"></canvas>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-line" style="background:#16a34a;"></div>P/B</div>
+      <div class="legend-item"><div class="legend-line" style="border-top:1px dashed #16a34a;background:none;width:18px;"></div>평균</div>
+      <div class="legend-item"><div class="legend-band" style="background:#d97706;opacity:.4;"></div>±1σ</div>
+      <div class="legend-item"><div class="legend-band" style="background:#dc2626;opacity:.3;"></div>±2σ</div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">■ 코스닥 Fwd P/E 밴드
+      <div class="tabs">
+        <div class="tab active" onclick="setRange('kosdaq-pe','all',this)">전체</div>
+        <div class="tab" onclick="setRange('kosdaq-pe','3y',this)">3년</div>
+        <div class="tab" onclick="setRange('kosdaq-pe','1y',this)">1년</div>
+      </div>
+    </div>
+    <div class="chart-outer" id="outer-kosdaq-pe">
+      <canvas id="chart-kosdaq-pe" role="img" aria-label="코스닥 PER 밴드 차트"></canvas>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-line" style="background:#d97706;"></div>P/E</div>
+      <div class="legend-item"><div class="legend-line" style="border-top:1px dashed #16a34a;background:none;width:18px;"></div>평균</div>
+      <div class="legend-item"><div class="legend-band" style="background:#d97706;opacity:.4;"></div>±1σ</div>
+      <div class="legend-item"><div class="legend-band" style="background:#dc2626;opacity:.3;"></div>±2σ</div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-title">■ 코스닥 Fwd P/B 밴드
+      <div class="tabs">
+        <div class="tab active" onclick="setRange('kosdaq-pb','all',this)">전체</div>
+        <div class="tab" onclick="setRange('kosdaq-pb','3y',this)">3년</div>
+        <div class="tab" onclick="setRange('kosdaq-pb','1y',this)">1년</div>
+      </div>
+    </div>
+    <div class="chart-outer" id="outer-kosdaq-pb">
+      <canvas id="chart-kosdaq-pb" role="img" aria-label="코스닥 PBR 밴드 차트"></canvas>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-line" style="background:#7c3aed;"></div>P/B</div>
+      <div class="legend-item"><div class="legend-line" style="border-top:1px dashed #16a34a;background:none;width:18px;"></div>평균</div>
+      <div class="legend-item"><div class="legend-band" style="background:#d97706;opacity:.4;"></div>±1σ</div>
+      <div class="legend-item"><div class="legend-band" style="background:#dc2626;opacity:.3;"></div>±2σ</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const D = valuationData;
+
+// ── KPI ──────────────────────────────────────────────
+function signal(val, stats) {
+  const z = (val - stats.mean) / stats.std;
+  if (z <= -1) return ['저평가','sig-low'];
+  if (z >=  1) return ['고평가','sig-high'];
+  return ['적정','sig-mid'];
+}
+function renderKPI(pfx, data) {
+  const c=data.current, ps=data.pe_stats, bs=data.pb_stats;
+  document.getElementById(`kpi-${pfx}-pe`).textContent      = c.pe+'x';
+  document.getElementById(`kpi-${pfx}-pe-avg`).textContent  = `6년 평균 ${ps.mean}x`;
+  document.getElementById(`kpi-${pfx}-pb`).textContent      = c.pb+'x';
+  document.getElementById(`kpi-${pfx}-pb-avg`).textContent  = `6년 평균 ${bs.mean}x`;
+  const [peSig,peCls]=signal(c.pe,ps), [pbSig,pbCls]=signal(c.pb,bs);
+  const peEl=document.getElementById(`kpi-${pfx}-pe-sig`);
+  const pbEl=document.getElementById(`kpi-${pfx}-pb-sig`);
+  peEl.textContent=peSig; peEl.className=`kpi-signal ${peCls}`;
+  pbEl.textContent=pbSig; pbEl.className=`kpi-signal ${pbCls}`;
+}
+document.getElementById('base-date').textContent = '기준일: '+D.base_date;
+renderKPI('kospi',  D.kospi);
+renderKPI('kosdaq', D.kosdaq);
+
+// ── 글로벌 바 (라이트 팔레트) ─────────────────────────
+const PAL = {
+  '코스피':'#2563eb','코스닥':'#d97706',
+  'S&P 500':'#16a34a','NASDAQ':'#7c3aed',
+  '닛케이 225':'#ea580c','항셍':'#0284c7',
+  '상해종합':'#dc2626','EuroStoxx 50':'#059669'
+};
+const HL = new Set(['코스피','코스닥']);
+
+function buildBar(cid, items, maxVal) {
+  const el=document.getElementById(cid); el.innerHTML='';
+  items.forEach(({name,val})=>{
+    if(val==null) return;
+    const pct=Math.min((val/maxVal)*100,100);
+    const col=PAL[name]||'#64748b';
+    const hlc=HL.has(name)?' hl':'';
+    el.innerHTML+=`
+      <div class="gbar-row${hlc}">
+        <div class="gbar-label">${name}</div>
+        <div class="gbar-track">
+          <div class="gbar-fill" style="width:${pct}%;background:${col};">${val}x</div>
+        </div>
+        <div class="gbar-val">${val}x</div>
+      </div>`;
+  });
+}
+const snap=D.global.snapshot;
+const peIt=[{name:'코스피',val:D.kospi.current.pe},{name:'코스닥',val:D.kosdaq.current.pe},
+            ...Object.entries(snap).map(([k,v])=>({name:k,val:v.pe}))]
+           .sort((a,b)=>(b.val||0)-(a.val||0));
+const pbIt=[{name:'코스피',val:D.kospi.current.pb},{name:'코스닥',val:D.kosdaq.current.pb},
+            ...Object.entries(snap).map(([k,v])=>({name:k,val:v.pb}))]
+           .sort((a,b)=>(b.val||0)-(a.val||0));
+buildBar('pe-bar-container',peIt,Math.max(...peIt.map(x=>x.val||0))*1.08);
+buildBar('pb-bar-container',pbIt,Math.max(...pbIt.map(x=>x.val||0))*1.08);
+
+// ── 밴드 차트 ─────────────────────────────────────────
+const CHARTS={};
+const CHART_COLORS={
+  gridLine:'rgba(203,213,225,.6)',
+  tickX:'#94a3b8', tickY:'#475569',
+  mean:'#16a34a',
+  band1:'rgba(217,119,6,.12)', band1line:'rgba(217,119,6,.6)',
+  band2:'rgba(220,38,38,.08)', band2line:'rgba(220,38,38,.5)',
+};
+
+function bandAnno(stats) {
+  return {
+    mean:{ type:'line',yMin:stats.mean,yMax:stats.mean,
+           borderColor:CHART_COLORS.mean,borderWidth:1.2,borderDash:[5,3],
+           label:{content:`평균 ${stats.mean}`,display:true,position:'end',
+                  font:{size:9},color:CHART_COLORS.mean,
+                  backgroundColor:'rgba(248,250,252,.9)',
+                  color:CHART_COLORS.mean}},
+    b2:  { type:'box',yMin:stats.p2s_lo,yMax:stats.p2s_hi,
+           backgroundColor:CHART_COLORS.band2,borderWidth:0 },
+    b1:  { type:'box',yMin:stats.p1s_lo,yMax:stats.p1s_hi,
+           backgroundColor:CHART_COLORS.band1,borderWidth:0 },
+    hi1: { type:'line',yMin:stats.p1s_hi,yMax:stats.p1s_hi,
+           borderColor:CHART_COLORS.band1line,borderWidth:1,borderDash:[3,3] },
+    lo1: { type:'line',yMin:stats.p1s_lo,yMax:stats.p1s_lo,
+           borderColor:CHART_COLORS.band1line,borderWidth:1,borderDash:[3,3] },
+    hi2: { type:'line',yMin:stats.p2s_hi,yMax:stats.p2s_hi,
+           borderColor:CHART_COLORS.band2line,borderWidth:1,borderDash:[3,3] },
+    lo2: { type:'line',yMin:stats.p2s_lo,yMax:stats.p2s_lo,
+           borderColor:CHART_COLORS.band2line,borderWidth:1,borderDash:[3,3] },
+  };
+}
+
+function makeChart(cid, series, stats, color, key) {
+  if(CHARTS[cid]) CHARTS[cid].destroy();
+  CHARTS[cid]=new Chart(document.getElementById(cid),{
+    type:'line',
+    data:{
+      labels:series.map(r=>r.date),
+      datasets:[{data:series.map(r=>r[key]),borderColor:color,
+                 borderWidth:1.6,pointRadius:0,tension:0.2,fill:false}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        annotation:{annotations:bandAnno(stats)}
+      },
+      scales:{
+        x:{ticks:{color:CHART_COLORS.tickX,font:{size:9},
+                  maxTicksLimit:10,maxRotation:0},
+           grid:{color:CHART_COLORS.gridLine}},
+        y:{ticks:{color:CHART_COLORS.tickY,font:{size:10},
+                  callback:v=>v.toFixed(1)+'x'},
+           grid:{color:CHART_COLORS.gridLine}}
+      }
+    }
+  });
+}
+
+makeChart('chart-kospi-pe',  D.kospi.series,  D.kospi.pe_stats,  '#2563eb','pe');
+makeChart('chart-kospi-pb',  D.kospi.series,  D.kospi.pb_stats,  '#16a34a','pb');
+makeChart('chart-kosdaq-pe', D.kosdaq.series, D.kosdaq.pe_stats, '#d97706','pe');
+makeChart('chart-kosdaq-pb', D.kosdaq.series, D.kosdaq.pb_stats, '#7c3aed','pb');
+
+// ── 범위 필터 ─────────────────────────────────────────
+const CFG={
+  'kospi-pe': {series:D.kospi.series,  stats:D.kospi.pe_stats,  color:'#2563eb',key:'pe'},
+  'kospi-pb': {series:D.kospi.series,  stats:D.kospi.pb_stats,  color:'#16a34a',key:'pb'},
+  'kosdaq-pe':{series:D.kosdaq.series, stats:D.kosdaq.pe_stats, color:'#d97706',key:'pe'},
+  'kosdaq-pb':{series:D.kosdaq.series, stats:D.kosdaq.pb_stats, color:'#7c3aed',key:'pb'},
+};
+function setRange(chartKey,range,btn){
+  btn.closest('.tabs').querySelectorAll('.tab')
+     .forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  const cfg=CFG[chartKey];
+  const last=new Date(cfg.series[cfg.series.length-1].date);
+  const from=range==='all'?new Date('2019-01-01')
+             :range==='3y'?new Date(last.getFullYear()-3,last.getMonth(),last.getDate())
+                          :new Date(last.getFullYear()-1,last.getMonth(),last.getDate());
+  const f=cfg.series.filter(r=>new Date(r.date)>=from);
+  const ch=CHARTS[`chart-${chartKey}`];
+  ch.data.labels=f.map(r=>r.date);
+  ch.data.datasets[0].data=f.map(r=>r[cfg.key]);
+  ch.update();
+}
+
+// ── ResizeObserver — 창 크기 변경 시 차트 높이 재계산 ──
+// chart-outer 의 clientHeight 를 직접 감지해서 Chart.js resize() 호출
+const RO = new ResizeObserver(entries => {
+  entries.forEach(entry => {
+    const id = entry.target.dataset.chartId;
+    if (id && CHARTS[id]) {
+      CHARTS[id].resize();
+    }
+  });
+});
+['kospi-pe','kospi-pb','kosdaq-pe','kosdaq-pb'].forEach(k=>{
+  const outer=document.getElementById(`outer-${k}`);
+  if(outer){
+    outer.dataset.chartId=`chart-${k}`;
+    RO.observe(outer);
+  }
+});
+</script>
+</body>
+</html>

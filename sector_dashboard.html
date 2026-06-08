@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>섹터 밸류에이션 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script src="sector_data.js"></script>
+<script src="sector_series.js"></script>
+<script src="sector_supply.js"></script>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+:root{--bg:#f1f5f9;--bg2:#fff;--bg3:#f8fafc;--border:#94a3b8;--border2:#cbd5e1;
+  --text1:#1e293b;--text2:#334155;--text3:#64748b;--text4:#94a3b8;--navy:#1e3a8a;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text1);padding:12px;font-size:12px;}
+.header{background:var(--navy);color:#fff;padding:8px 16px;border-radius:4px;
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.header-title{font-size:13px;font-weight:700;}
+.header-date{font-size:11px;color:#bfdbfe;font-weight:600;}
+.insight-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;
+  padding:10px 16px;margin-bottom:10px;font-size:13px;line-height:1.9;color:#1e3a8a;}
+.section-card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;
+  padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.05);margin-bottom:10px;}
+.section-title{color:var(--navy);font-weight:700;font-size:11px;
+  border-bottom:2px solid var(--navy);padding-bottom:4px;margin-bottom:10px;}
+.criteria-box{background:#fefce8;border:1px solid #fde047;border-radius:4px;
+  padding:5px 12px;margin-bottom:8px;font-size:10px;color:#713f12;
+  display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.cdot{width:10px;height:10px;border-radius:2px;display:inline-block;
+  vertical-align:middle;margin-right:2px;}
+.group-tabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;}
+.gtab{font-size:11px;padding:3px 14px;border-radius:20px;cursor:pointer;
+  border:1px solid var(--border2);background:var(--bg3);color:var(--text3);}
+.gtab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+
+@media(max-width:1100px){.card-grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:750px){.card-grid{grid-template-columns:repeat(2,1fr);}}
+.s-card{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;
+  padding:12px;cursor:pointer;transition:box-shadow .18s,transform .18s;}
+.s-card:hover{box-shadow:0 2px 8px rgba(30,58,138,.14);transform:translateY(-1px);}
+.s-card.active{outline:2px solid var(--navy);outline-offset:-1px;
+  box-shadow:0 3px 12px rgba(30,58,138,.2);}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.card-name{font-size:11px;font-weight:700;color:var(--text2);line-height:1.3;}
+.card-signal{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;}
+.card-vals{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px;}
+.val-block{border-radius:6px;padding:7px 8px;}
+.val-block .metric{font-size:9px;font-weight:600;color:rgba(255,255,255,.8);margin-bottom:2px;}
+.val-block .num{font-size:19px;font-weight:700;color:#fff;line-height:1;}
+.val-block .zval{font-size:10px;color:rgba(255,255,255,.85);margin-top:2px;}
+.gauge-wrap{margin-bottom:8px;}
+.gauge-lbl{display:flex;justify-content:space-between;font-size:9px;color:var(--text4);margin-bottom:2px;}
+.gauge-track{height:6px;background:#e2e8f0;border-radius:3px;position:relative;overflow:hidden;}
+.gauge-mark{position:absolute;top:0;left:50%;width:1px;height:100%;background:var(--border);z-index:1;}
+.gauge-fill{position:absolute;top:0;left:0;height:100%;border-radius:3px;}
+.reps-wrap{display:flex;flex-wrap:wrap;gap:3px;}
+.rep-chip{font-size:9px;padding:2px 6px;border-radius:3px;
+  border:0.5px solid var(--border2);background:var(--bg3);color:var(--text2);}
+.rep-chip.inflow{background:#dcfce7;border-color:#16a34a;color:#15803d;font-weight:600;}
+.rep-chip.outflow{background:#fee2e2;border-color:#dc2626;color:#b91c1c;font-weight:600;}
+.rep-chip.neutral{background:#fef9c3;border-color:#ca8a04;color:#92400e;}
+.drawer-box{display:none;background:var(--bg2);border:1.5px solid var(--navy);
+  border-radius:8px;padding:14px;margin-top:10px;
+  animation:sd .2s ease;}
+.drawer-box.open{display:block;}
+
+@keyframes sd{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+.drawer-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.drawer-charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;}
+.drawer-chart-wrap{position:relative;}
+.drawer-chart-wrap canvas{height:200px!important;}
+.drawer-chart-label{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;}
+.drawer-title{font-size:12px;font-weight:700;color:var(--navy);}
+.range-tabs{display:flex;gap:3px;}
+.rtab{font-size:10px;padding:2px 7px;border-radius:3px;cursor:pointer;
+  color:var(--text3);border:1px solid var(--border2);background:var(--bg3);}
+.rtab.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.btn-close{font-size:20px;cursor:pointer;color:var(--text3);
+  background:none;border:none;padding:0 4px;line-height:1;}
+.chart-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:600px){.chart-pair{grid-template-columns:1fr;}}
+.chart-panel{background:var(--bg3);border-radius:6px;padding:8px;}
+.panel-lbl{font-size:10px;font-weight:700;margin-bottom:4px;
+  display:flex;justify-content:space-between;}
+.chart-wrap{position:relative;height:160px;}
+.chart-wrap canvas{position:absolute;top:0;left:0;
+  width:100%!important;height:100%!important;}
+
+/* ── 팝업 모달 ── */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(2px);z-index:1000;align-items:center;justify-content:center;padding:16px;}
+.modal-backdrop.open{display:flex;}
+.modal-box{background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:860px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;animation:modalIn .2s ease;}
+@keyframes modalIn{from{opacity:0;transform:translateY(16px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #e2e8f0;flex-shrink:0;}
+.modal-title{font-size:13px;font-weight:700;}
+.modal-ctrl{display:flex;gap:6px;align-items:center;}
+.modal-body{padding:14px;overflow-y:auto;flex:1;}
+.modal-charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:600px){.modal-charts{grid-template-columns:1fr;}}
+.modal-chart-wrap{position:relative;height:220px;}
+.modal-chart-wrap canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important;}
+.modal-chart-label{font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px;}
+.btn-close-modal{font-size:18px;cursor:pointer;color:#94a3b8;background:none;border:none;padding:0 4px;line-height:1;transition:color .15s;}
+.btn-close-modal:hover{color:#1e293b;}
+.inline-drawer{display:none;grid-column:1/-1;background:#fff;border:1.5px solid var(--navy);border-radius:8px;padding:14px;animation:sd .2s ease;}
+.inline-drawer.open{display:block;}
+.view-mode-toggle{display:flex;gap:3px;margin-left:8px;}
+.vmt-btn{font-size:10px;padding:2px 8px;border-radius:3px;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);}
+.vmt-btn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.caution{font-size:10px;color:var(--text4);border-top:1px solid var(--border2);
+  padding-top:5px;margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-title">&#9654; 섹터 밸류에이션 대시보드 &mdash; 25개 섹터 P/E &middot; P/B Z-score</div>
+  <div class="header-date" id="base-date">기준일: &mdash;</div>
+</div>
+<div class="insight-box" id="insight-box">분석 중...</div>
+<div class="section-card">
+  <div class="section-title">&#9632; 섹터 카드 &mdash; 카드 클릭 시 밴드 추이 펼침</div>
+  <div class="criteria-box">
+    <strong>Z-score 기준 (2019년 이후 평균 대비)</strong>
+    <span><span class="cdot" style="background:#1d4ed8"></span>Z&#8804;&minus;2 극단저평가</span>
+    <span><span class="cdot" style="background:#3b82f6"></span>저평가</span>
+    <span><span class="cdot" style="background:#64748b"></span>적정</span>
+    <span><span class="cdot" style="background:#f59e0b"></span>고평가</span>
+    <span><span class="cdot" style="background:#dc2626"></span>Z&#8805;+2 극단과열</span>
+    <span>&#124; 대표종목:
+      <span style="background:#dcfce7;border:0.5px solid #16a34a;color:#15803d;padding:1px 5px;border-radius:3px;">수급유입</span>
+      <span style="background:#fee2e2;border:0.5px solid #dc2626;color:#b91c1c;padding:1px 5px;border-radius:3px;">수급유출</span>
+      (추후 연동)
+    </span>
+  </div>
+  <div style="display:flex;align-items:center;margin-bottom:8px;gap:6px;">
+    <span style="font-size:10px;color:#64748b;font-weight:600;">차트 표시 방식:</span>
+    <div class="view-mode-toggle">
+      <button class="vmt-btn active" id="vmt-popup" onclick="setViewMode('popup')">🔲 팝업</button>
+      <button class="vmt-btn" id="vmt-inline" onclick="setViewMode('inline')">⬇ 카드 아래</button>
+    </div>
+  </div>
+  <div class="group-tabs" id="group-tabs">
+    <div class="gtab active" data-group="all">전체 (25)</div>
+    <div class="gtab" data-group="kospi_size">코스피 규모별</div>
+    <div class="gtab" data-group="kospi_sector">코스피 업종별</div>
+    <div class="gtab" data-group="kosdaq">코스닥</div>
+  </div>
+  <!-- 카드 그리드 --><div class="card-grid" id="card-grid"></div></div>
+  
+  <div class="caution">&#10071; Z-score = (현재 &minus; 2019년 이후 평균) &#247; 표준편차 &nbsp;|&nbsp; Fwd.12M 컨센서스 (QuantiWise)</div>
+</div>
+
+<div class="modal-backdrop" id="modal-backdrop" onclick="onBackdropClick(event)">
+  <div class="modal-box" id="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title"></div>
+      <div class="modal-ctrl">
+        <div class="range-tabs" id="modal-range-tabs">
+          <button class="rtab active" onclick="setRange('전체','modal')">전체</button>
+          <button class="rtab" onclick="setRange('3년','modal')">3년</button>
+          <button class="rtab" onclick="setRange('1년','modal')">1년</button>
+        </div>
+        <button class="btn-close-modal" onclick="closeModal()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-charts">
+        <div><div class="modal-chart-label">Fwd P/E 밴드</div><div class="modal-chart-wrap"><canvas id="mc-pe"></canvas></div></div>
+        <div><div class="modal-chart-label">Fwd P/B 밴드</div><div class="modal-chart-wrap"><canvas id="mc-pb"></canvas></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+var LIGHT = {"base_date": "2026-06-03", "sectors": {"IKS002": {"name": "코스피 대형주", "code": "IKS002", "group": "kospi_size", "current": {"pe": 8.42, "pb": 2.16, "pe_z": -1.56, "pb_z": 5.27}, "pe_stats": {"mean": 10.89, "std": 1.58, "p1s_hi": 12.47, "p1s_lo": 9.31, "p2s_hi": 14.05, "p2s_lo": 7.73, "min": 6.8, "max": 14.95}, "pb_stats": {"mean": 1.0, "std": 0.22, "p1s_hi": 1.22, "p1s_lo": 0.79, "p2s_hi": 1.43, "p2s_lo": 0.57, "min": 0.64, "max": 2.16}, "data_points": 388, "null_count": 0, "reps": ["삼성전자", "SK하이닉스", "LG에너지솔루션", "삼성바이오로직스", "현대차"], "order": 1}, "IKS003": {"name": "코스피 중형주", "code": "IKS003", "group": "kospi_size", "current": {"pe": 11.1, "pb": 0.82, "pe_z": 1.27, "pb_z": 0.91}, "pe_stats": {"mean": 9.01, "std": 1.64, "p1s_hi": 10.65, "p1s_lo": 7.37, "p2s_hi": 12.29, "p2s_lo": 5.73, "min": 6.17, "max": 13.63}, "pb_stats": {"mean": 0.72, "std": 0.11, "p1s_hi": 0.83, "p1s_lo": 0.6, "p2s_hi": 0.95, "p2s_lo": 0.49, "min": 0.43, "max": 0.98}, "data_points": 388, "null_count": 0, "reps": ["고려아연", "한화에어로스페이스", "현대글로비스", "LG유플러스", "OCI홀딩스"], "order": 2}, "IKS004": {"name": "코스피 소형주", "code": "IKS004", "group": "kospi_size", "current": {"pe": 7.71, "pb": 0.47, "pe_z": 0.1, "pb_z": -1.08}, "pe_stats": {"mean": 7.58, "std": 1.31, "p1s_hi": 8.89, "p1s_lo": 6.27, "p2s_hi": 10.2, "p2s_lo": 4.97, "min": 5.41, "max": 10.94}, "pb_stats": {"mean": 0.6, "std": 0.12, "p1s_hi": 0.71, "p1s_lo": 0.48, "p2s_hi": 0.83, "p2s_lo": 0.37, "min": 0.37, "max": 0.87}, "data_points": 388, "null_count": 0, "reps": ["동양생명", "대한전선", "세아베스틸지주", "넥스틸", "HMM"], "order": 3}, "IKS013": {"name": "코스피 전기·전자", "code": "IKS013", "group": "kospi_sector", "current": {"pe": 7.54, "pb": 3.0, "pe_z": -0.98, "pb_z": 5.32}, "pe_stats": {"mean": 12.82, "std": 5.4, "p1s_hi": 18.21, "p1s_lo": 7.42, "p2s_hi": 23.61, "p2s_lo": 2.02, "min": 5.32, "max": 36.17}, "pb_stats": {"mean": 1.35, "std": 0.31, "p1s_hi": 1.66, "p1s_lo": 1.03, "p2s_hi": 1.97, "p2s_lo": 0.72, "min": 0.79, "max": 3.0}, "data_points": 388, "null_count": 0, "reps": ["삼성전자", "SK하이닉스", "LG전자", "삼성SDI", "LG이노텍"], "order": 1}, "IKS015": {"name": "코스피 운송장비·부품", "code": "IKS015", "group": "kospi_sector", "current": {"pe": 14.46, "pb": 1.65, "pe_z": 2.73, "pb_z": 3.64}, "pe_stats": {"mean": 8.37, "std": 2.23, "p1s_hi": 10.6, "p1s_lo": 6.13, "p2s_hi": 12.84, "p2s_lo": 3.9, "min": 4.76, "max": 14.98}, "pb_stats": {"mean": 0.74, "std": 0.25, "p1s_hi": 0.99, "p1s_lo": 0.49, "p2s_hi": 1.23, "p2s_lo": 0.24, "min": 0.31, "max": 1.71}, "data_points": 388, "null_count": 0, "reps": ["현대차", "기아", "현대모비스", "한국타이어앤테크놀로지", "현대위아"], "order": 2}, "IKS005": {"name": "코스피 음식료·담배", "code": "IKS005", "group": "kospi_sector", "current": {"pe": 11.82, "pb": 1.25, "pe_z": 0.11, "pb_z": 1.19}, "pe_stats": {"mean": 11.62, "std": 1.88, "p1s_hi": 13.5, "p1s_lo": 9.74, "p2s_hi": 15.38, "p2s_lo": 7.87, "min": 7.99, "max": 15.86}, "pb_stats": {"mean": 1.06, "std": 0.16, "p1s_hi": 1.22, "p1s_lo": 0.9, "p2s_hi": 1.38, "p2s_lo": 0.74, "min": 0.76, "max": 1.44}, "data_points": 388, "null_count": 0, "reps": ["CJ제일제당", "오리온", "농심", "하이트진로", "롯데칠성"], "order": 9}, "IKS006": {"name": "코스피 섬유·의류", "code": "IKS006", "group": "kospi_sector", "current": {"pe": 5.21, "pb": 0.67, "pe_z": -1.3, "pb_z": -1.0}, "pe_stats": {"mean": 8.28, "std": 2.37, "p1s_hi": 10.65, "p1s_lo": 5.91, "p2s_hi": 13.02, "p2s_lo": 3.54, "min": 4.69, "max": 14.74}, "pb_stats": {"mean": 1.19, "std": 0.52, "p1s_hi": 1.71, "p1s_lo": 0.67, "p2s_hi": 2.23, "p2s_lo": 0.15, "min": 0.55, "max": 2.85}, "data_points": 388, "null_count": 0, "reps": ["영원무역", "F&F", "한세실업", "신세계인터내셔날", "LF"], "order": 15}, "IKS007": {"name": "코스피 종이·목재", "code": "IKS007", "group": "kospi_sector", "current": {"pe": 4.68, "pb": 0.26, "pe_z": -0.33, "pb_z": -1.56}, "pe_stats": {"mean": 5.2, "std": 1.59, "p1s_hi": 6.8, "p1s_lo": 3.61, "p2s_hi": 8.39, "p2s_lo": 2.02, "min": 2.43, "max": 12.32}, "pb_stats": {"mean": 0.4, "std": 0.09, "p1s_hi": 0.49, "p1s_lo": 0.31, "p2s_hi": 0.57, "p2s_lo": 0.22, "min": 0.26, "max": 0.68}, "data_points": 385, "null_count": 3, "reps": ["한솔제지", "아세아제지", "깨끗한나라", "무림P&P", "태림포장"], "order": 17}, "IKS008": {"name": "코스피 화학", "code": "IKS008", "group": "kospi_sector", "current": {"pe": 11.87, "pb": 0.82, "pe_z": -0.33, "pb_z": -0.5}, "pe_stats": {"mean": 13.05, "std": 3.61, "p1s_hi": 16.66, "p1s_lo": 9.43, "p2s_hi": 20.27, "p2s_lo": 5.82, "min": 7.41, "max": 23.86}, "pb_stats": {"mean": 0.97, "std": 0.3, "p1s_hi": 1.27, "p1s_lo": 0.67, "p2s_hi": 1.57, "p2s_lo": 0.38, "min": 0.53, "max": 1.79}, "data_points": 388, "null_count": 0, "reps": ["LG화학", "롯데케미칼", "SK이노베이션", "금호석유", "한화솔루션"], "order": 5}, "IKS009": {"name": "코스피 제약", "code": "IKS009", "group": "kospi_sector", "current": {"pe": 28.43, "pb": 2.96, "pe_z": -1.95, "pb_z": -1.16}, "pe_stats": {"mean": 48.38, "std": 10.22, "p1s_hi": 58.6, "p1s_lo": 38.16, "p2s_hi": 68.81, "p2s_lo": 27.94, "min": 28.43, "max": 72.83}, "pb_stats": {"mean": 4.49, "std": 1.32, "p1s_hi": 5.81, "p1s_lo": 3.17, "p2s_hi": 7.13, "p2s_lo": 1.85, "min": 2.33, "max": 8.16}, "data_points": 388, "null_count": 0, "reps": ["셀트리온", "유한양행", "한미약품", "대웅제약", "종근당"], "order": 3}, "IKS010": {"name": "코스피 비금속", "code": "IKS010", "group": "kospi_sector", "current": {"pe": 9.36, "pb": 0.51, "pe_z": -0.84, "pb_z": -1.04}, "pe_stats": {"mean": 15.81, "std": 7.7, "p1s_hi": 23.51, "p1s_lo": 8.12, "p2s_hi": 31.21, "p2s_lo": 0.42, "min": 5.17, "max": 41.44}, "pb_stats": {"mean": 1.39, "std": 0.85, "p1s_hi": 2.23, "p1s_lo": 0.54, "p2s_hi": 3.08, "p2s_lo": -0.31, "min": 0.32, "max": 3.94}, "data_points": 388, "null_count": 0, "reps": ["KCC", "한국유리공업", "동양", "아시아시멘트", "한일현대시멘트"], "order": 16}, "IKS011": {"name": "코스피 금속", "code": "IKS011", "group": "kospi_sector", "current": {"pe": 17.35, "pb": 0.83, "pe_z": 1.75, "pb_z": 2.23}, "pe_stats": {"mean": 10.33, "std": 4.02, "p1s_hi": 14.35, "p1s_lo": 6.31, "p2s_hi": 18.37, "p2s_lo": 2.29, "min": 3.97, "max": 21.58}, "pb_stats": {"mean": 0.54, "std": 0.13, "p1s_hi": 0.67, "p1s_lo": 0.41, "p2s_hi": 0.81, "p2s_lo": 0.27, "min": 0.28, "max": 1.04}, "data_points": 388, "null_count": 0, "reps": ["POSCO홀딩스", "현대제철", "고려아연", "풍산", "세아제강지주"], "order": 6}, "IKS012": {"name": "코스피 기계·장비", "code": "IKS012", "group": "kospi_sector", "current": {"pe": 41.47, "pb": 4.31, "pe_z": 2.63, "pb_z": 3.25}, "pe_stats": {"mean": 17.63, "std": 9.08, "p1s_hi": 26.71, "p1s_lo": 8.54, "p2s_hi": 35.79, "p2s_lo": -0.54, "min": 7.82, "max": 51.33}, "pb_stats": {"mean": 1.68, "std": 0.81, "p1s_hi": 2.49, "p1s_lo": 0.87, "p2s_hi": 3.3, "p2s_lo": 0.06, "min": 0.62, "max": 4.99}, "data_points": 388, "null_count": 0, "reps": ["두산에너빌리티", "LS ELECTRIC", "현대로템", "HD현대인프라코어", "한화에어로스페이스"], "order": 7}, "IKS014": {"name": "코스피 의료·정밀기기", "code": "IKS014", "group": "kospi_sector", "current": {"pe": 11.46, "pb": 1.27, "pe_z": 0.05, "pb_z": -0.43}, "pe_stats": {"mean": -1129.94, "std": 21826.52, "p1s_hi": 20696.59, "p1s_lo": -22956.46, "p2s_hi": 42523.11, "p2s_lo": -44782.98, "min": -429894.64, "max": 415.48}, "pb_stats": {"mean": 1.43, "std": 0.37, "p1s_hi": 1.8, "p1s_lo": 1.06, "p2s_hi": 2.18, "p2s_lo": 0.68, "min": 0.7, "max": 2.19}, "data_points": 388, "null_count": 0, "reps": ["오스템임플란트", "바텍", "인바디", "뷰웍스", "이노팩"], "order": 13}, "IKS016": {"name": "코스피 유통", "code": "IKS016", "group": "kospi_sector", "current": {"pe": 16.1, "pb": 0.98, "pe_z": 2.39, "pb_z": 3.1}, "pe_stats": {"mean": 10.99, "std": 2.14, "p1s_hi": 13.14, "p1s_lo": 8.85, "p2s_hi": 15.28, "p2s_lo": 6.7, "min": 7.99, "max": 16.1}, "pb_stats": {"mean": 0.67, "std": 0.1, "p1s_hi": 0.78, "p1s_lo": 0.57, "p2s_hi": 0.88, "p2s_lo": 0.47, "min": 0.49, "max": 0.98}, "data_points": 388, "null_count": 0, "reps": ["이마트", "롯데쇼핑", "BGF리테일", "GS리테일", "현대백화점"], "order": 11}, "IKS017": {"name": "코스피 전기·가스", "code": "IKS017", "group": "kospi_sector", "current": {"pe": 3.65, "pb": 0.4, "pe_z": 0.05, "pb_z": 1.13}, "pe_stats": {"mean": -9.31, "std": 241.28, "p1s_hi": 231.97, "p1s_lo": -250.59, "p2s_hi": 473.25, "p2s_lo": -491.88, "min": -4705.15, "max": 147.0}, "pb_stats": {"mean": 0.31, "std": 0.08, "p1s_hi": 0.4, "p1s_lo": 0.23, "p2s_hi": 0.48, "p2s_lo": 0.15, "min": 0.17, "max": 0.62}, "data_points": 388, "null_count": 0, "reps": ["한국전력", "한국가스공사", "지역난방공사", "한국전력기술", "서울가스"], "order": 14}, "IKS018": {"name": "코스피 건설", "code": "IKS018", "group": "kospi_sector", "current": {"pe": 12.36, "pb": 1.12, "pe_z": 2.61, "pb_z": 2.62}, "pe_stats": {"mean": 6.19, "std": 2.36, "p1s_hi": 8.55, "p1s_lo": 3.84, "p2s_hi": 10.9, "p2s_lo": 1.48, "min": 3.33, "max": 20.2}, "pb_stats": {"mean": 0.57, "std": 0.21, "p1s_hi": 0.78, "p1s_lo": 0.37, "p2s_hi": 0.99, "p2s_lo": 0.16, "min": 0.35, "max": 1.62}, "data_points": 388, "null_count": 0, "reps": ["현대건설", "GS건설", "대우건설", "HDC현대산업개발", "DL이앤씨"], "order": 8}, "IKS019": {"name": "코스피 운송·창고", "code": "IKS019", "group": "kospi_sector", "current": {"pe": 12.32, "pb": 0.77, "pe_z": -0.04, "pb_z": -0.41}, "pe_stats": {"mean": 14.09, "std": 41.61, "p1s_hi": 55.7, "p1s_lo": -27.52, "p2s_hi": 97.3, "p2s_lo": -69.13, "min": -498.25, "max": 258.23}, "pb_stats": {"mean": 0.89, "std": 0.29, "p1s_hi": 1.17, "p1s_lo": 0.6, "p2s_hi": 1.46, "p2s_lo": 0.32, "min": 0.49, "max": 1.71}, "data_points": 388, "null_count": 0, "reps": ["HMM", "팬오션", "대한항공", "CJ대한통운", "현대글로비스"], "order": 12}, "IKS020": {"name": "코스피 통신", "code": "IKS020", "group": "kospi_sector", "current": {"pe": 13.4, "pb": 1.11, "pe_z": 3.52, "pb_z": 4.0}, "pe_stats": {"mean": 8.96, "std": 1.26, "p1s_hi": 10.22, "p1s_lo": 7.71, "p2s_hi": 11.47, "p2s_lo": 6.45, "min": 6.93, "max": 13.4}, "pb_stats": {"mean": 0.71, "std": 0.1, "p1s_hi": 0.81, "p1s_lo": 0.61, "p2s_hi": 0.91, "p2s_lo": 0.51, "min": 0.51, "max": 1.11}, "data_points": 388, "null_count": 0, "reps": ["SK텔레콤", "KT", "LG유플러스", "SK브로드밴드", "KT스카이라이프"], "order": 10}, "IKS021": {"name": "코스피 금융", "code": "IKS021", "group": "kospi_sector", "current": {"pe": 7.36, "pb": 1.05, "pe_z": 1.27, "pb_z": 3.79}, "pe_stats": {"mean": 6.12, "std": 0.98, "p1s_hi": 7.09, "p1s_lo": 5.14, "p2s_hi": 8.07, "p2s_lo": 4.17, "min": 4.09, "max": 9.86}, "pb_stats": {"mean": 0.52, "std": 0.14, "p1s_hi": 0.66, "p1s_lo": 0.38, "p2s_hi": 0.8, "p2s_lo": 0.24, "min": 0.28, "max": 1.06}, "data_points": 388, "null_count": 0, "reps": ["KB금융", "신한지주", "하나금융지주", "우리금융지주", "기업은행"], "order": 4}, "IKQ002": {"name": "코스닥 대형주", "code": "IKQ002", "group": "kosdaq", "current": {"pe": 37.48, "pb": 5.34, "pe_z": 2.43, "pb_z": 3.3}, "pe_stats": {"mean": 23.45, "std": 5.77, "p1s_hi": 29.22, "p1s_lo": 17.69, "p2s_hi": 34.98, "p2s_lo": 11.92, "min": 13.42, "max": 41.7}, "pb_stats": {"mean": 3.03, "std": 0.7, "p1s_hi": 3.73, "p1s_lo": 2.33, "p2s_hi": 4.42, "p2s_lo": 1.63, "min": 1.76, "max": 5.9}, "data_points": 388, "null_count": 0, "reps": ["에코프로비엠", "HLB", "알테오젠", "리가켐바이오", "에코프로"], "order": 1}, "IKQ003": {"name": "코스닥 중형주", "code": "IKQ003", "group": "kosdaq", "current": {"pe": 15.22, "pb": 1.61, "pe_z": 1.62, "pb_z": 0.21}, "pe_stats": {"mean": 12.06, "std": 1.95, "p1s_hi": 14.01, "p1s_lo": 10.11, "p2s_hi": 15.95, "p2s_lo": 8.16, "min": 7.05, "max": 19.01}, "pb_stats": {"mean": 1.55, "std": 0.29, "p1s_hi": 1.84, "p1s_lo": 1.26, "p2s_hi": 2.12, "p2s_lo": 0.98, "min": 0.97, "max": 2.21}, "data_points": 388, "null_count": 0, "reps": ["원익IPS", "솔브레인", "파크시스템스", "HPSP", "리노공업"], "order": 2}, "IKQ004": {"name": "코스닥 소형주", "code": "IKQ004", "group": "kosdaq", "current": {"pe": 10.35, "pb": 1.25, "pe_z": -0.11, "pb_z": -0.21}, "pe_stats": {"mean": 10.55, "std": 1.85, "p1s_hi": 12.41, "p1s_lo": 8.7, "p2s_hi": 14.26, "p2s_lo": 6.84, "min": 6.25, "max": 17.51}, "pb_stats": {"mean": 1.31, "std": 0.29, "p1s_hi": 1.6, "p1s_lo": 1.03, "p2s_hi": 1.89, "p2s_lo": 0.74, "min": 0.67, "max": 2.22}, "data_points": 388, "null_count": 0, "reps": ["덕산네오룩스", "이오테크닉스", "코미팜", "와이지엔터테인먼트", "SFA반도체"], "order": 3}, "IKQ072": {"name": "코스닥 전기·전자", "code": "IKQ072", "group": "kosdaq", "current": {"pe": 31.68, "pb": 4.17, "pe_z": 0.41, "pb_z": 0.31}, "pe_stats": {"mean": 26.68, "std": 12.26, "p1s_hi": 38.95, "p1s_lo": 14.42, "p2s_hi": 51.21, "p2s_lo": 2.16, "min": 9.77, "max": 71.01}, "pb_stats": {"mean": 3.67, "std": 1.59, "p1s_hi": 5.26, "p1s_lo": 2.08, "p2s_hi": 6.85, "p2s_lo": 0.49, "min": 1.72, "max": 7.85}, "data_points": 388, "null_count": 0, "reps": ["에코프로비엠", "천보", "엘앤에프", "솔브레인", "나노신소재"], "order": 4}, "IKQ066": {"name": "코스닥 제약", "code": "IKQ066", "group": "kosdaq", "current": {"pe": 23.64, "pb": 2.87, "pe_z": 0.19, "pb_z": 0.11}, "pe_stats": {"mean": 22.49, "std": 6.2, "p1s_hi": 28.68, "p1s_lo": 16.29, "p2s_hi": 34.88, "p2s_lo": 10.09, "min": 13.23, "max": 54.36}, "pb_stats": {"mean": 2.78, "std": 0.85, "p1s_hi": 3.63, "p1s_lo": 1.94, "p2s_hi": 4.48, "p2s_lo": 1.09, "min": 1.43, "max": 5.54}, "data_points": 388, "null_count": 0, "reps": ["HLB", "알테오젠", "리가켐바이오", "유한양행", "셀트리온제약"], "order": 5}}};
+var COLORS = {"IKS002": "#1d4ed8", "IKS003": "#2563eb", "IKS004": "#60a5fa", "IKS013": "#7c3aed", "IKS015": "#6d28d9", "IKS008": "#0891b2", "IKS009": "#0e7490", "IKS011": "#475569", "IKS012": "#dc2626", "IKS021": "#16a34a", "IKS018": "#ca8a04", "IKS017": "#9a3412", "IKS005": "#b45309", "IKS006": "#a16207", "IKS007": "#92400e", "IKS010": "#64748b", "IKS014": "#0284c7", "IKS016": "#0369a1", "IKS019": "#155e75", "IKS020": "#1e40af", "IKQ002": "#dc2626", "IKQ003": "#ea580c", "IKQ004": "#f97316", "IKQ072": "#d97706", "IKQ066": "#ca8a04"};
+
+var sectors = LIGHT.sectors;
+var CHARTS  = {};
+var activeCode = null;
+var drawerBox  = document.getElementById('drawer-box');
+
+document.getElementById('base-date').textContent = '기준일: ' + LIGHT.base_date;
+
+function zBg(z){
+  if(z<=-2)return'#1d4ed8'; if(z<=-1)return'#3b82f6';
+  if(z<=1) return'#64748b'; if(z<=2) return'#f59e0b'; return'#dc2626';
+}
+function zLbl(z){
+  if(z<=-2)return'극단저평가'; if(z<=-1)return'저평가';
+  if(z<=1) return'적정';      if(z<=2) return'고평가'; return'극단과열';
+}
+function fmtZ(z){ return (z>=0?'+':'')+z; }
+function zGauge(z){ return Math.round((Math.max(-3,Math.min(3,z))+3)/6*100); }
+
+/* 인사이트 — 밸류에이션 + 수급 결합 자동 생성 */
+(function(){
+  var sv  = Object.values(sectors);
+  var byZ = sv.slice().sort(function(a,b){return a.current.pe_z-b.current.pe_z;});
+  var excl = {'IKS900':1,'IKQ001':1,'IKS027':1};
+
+  /* ── 밸류에이션 ── */
+  var cheap3 = byZ.slice(0,3);
+  var hot3   = byZ.slice(-3).reverse();
+  var div    = sv.filter(function(s){return s.current.pe_z<=-1 && s.current.pb_z>=2;});
+
+  /* ── 수급 결합 ── */
+  var hasSup = (typeof sectorSupply !== 'undefined');
+  var best=[], worst=[], sell3=[], buy3=[];
+  if(hasSup){
+    var sup = sectorSupply.sectors;
+    var fore20list = sv
+      .filter(function(s){return !excl[s.code] && sup[s.code];})
+      .map(function(s){
+        return {name:s.name, code:s.code,
+          pe_z:s.current.pe_z, pb_z:s.current.pb_z,
+          fore20: sup[s.code].summary.d20.fore,
+          inst20: sup[s.code].summary.d20.inst,
+          fore_sig: sup[s.code].summary.signal.fore,
+          inst_sig: sup[s.code].summary.signal.inst};
+      });
+
+    fore20list.sort(function(a,b){return a.fore20-b.fore20;});
+    sell3 = fore20list.slice(0,3);
+    buy3  = fore20list.slice(-3).reverse();
+
+    /* 저평가(PE Z≤-0.5) + 외국인 유입 = 매수 관심 */
+    best = fore20list.filter(function(s){
+      return s.pe_z <= -0.5 && s.fore_sig==='inflow';
+    }).sort(function(a,b){return a.pe_z-b.pe_z;}).slice(0,3);
+
+    /* 과열(PE Z≥1.5) + 외국인 유출 = 주의 */
+    worst = fore20list.filter(function(s){
+      return s.pe_z >= 1.5 && s.fore_sig==='outflow';
+    }).sort(function(a,b){return b.pe_z-a.pe_z;}).slice(0,3);
+  }
+
+  /* ── HTML 조립 ── */
+  function row(icon, label, content){
+    return '<div style="margin-bottom:3px;">'+icon+' <strong>'+label+'</strong> '+content+'</div>';
+  }
+  function secName(s){ return '<strong>'+s.name+'</strong>'; }
+  function fmtBn(v){
+    var a=Math.abs(v),sg=v>=0?'+':'-';
+    return sg+(a>=10000?(a/10000).toFixed(1)+'조':(a).toLocaleString()+'억');
+  }
+
+  var t = '';
+
+  /* 밸류에이션 라인 */
+  t += row('&#128200;','PE 저평가 TOP3:',
+    cheap3.map(function(s){return secName(s)+'(Z='+fmtZ(s.current.pe_z)+')'}).join(', '));
+  t += row('&#9651;','PE 과열 TOP3:',
+    hot3.map(function(s){return secName(s)+'(Z='+fmtZ(s.current.pe_z)+')'}).join(', '));
+
+  if(div.length){
+    t += row('&#9888;','PE↓ PB↑ 괴리 주목:',
+      div.map(function(s){
+        return secName(s)+'(PE Z='+fmtZ(s.current.pe_z)+' / PB Z='+fmtZ(s.current.pb_z)+')';
+      }).join(', ')+
+      ' &mdash; <span style="color:#1d4ed8;">이익 대비 자산가치 선반영. 구조적 리레이팅 가능성 vs 버블 경계 확인 필요</span>');
+  }
+
+  /* 수급 라인 */
+  if(hasSup){
+    t += row('&#128199;','외국인 20일 순매도:',
+      sell3.map(function(s){
+        return secName(s)+'(<span style="color:#b91c1c;">'+fmtBn(s.fore20)+'</span>)';
+      }).join(', '));
+    t += row('&#128200;','외국인 20일 순매수:',
+      buy3.map(function(s){
+        return secName(s)+'(<span style="color:#15803d;">'+fmtBn(s.fore20)+'</span>)';
+      }).join(', '));
+
+    /* 결합 인사이트 */
+    if(best.length){
+      t += row('&#9989;','저평가+수급유입 주목 섹터:',
+        '<span style="color:#15803d;">'+
+        best.map(function(s){
+          return secName(s)+'(PE Z='+fmtZ(s.pe_z)+' / 외국인 '+fmtBn(s.fore20)+')';
+        }).join(', ')+'</span>');
+    }
+    if(worst.length){
+      t += row('&#9888;','과열+수급유출 주의 섹터:',
+        '<span style="color:#b91c1c;">'+
+        worst.map(function(s){
+          return secName(s)+'(PE Z='+fmtZ(s.pe_z)+' / 외국인 '+fmtBn(s.fore20)+')';
+        }).join(', ')+'</span>');
+    }
+  }
+
+  document.getElementById('insight-box').innerHTML = t;
+})();
+
+/* 그룹 탭 이벤트 */
+document.getElementById('group-tabs').addEventListener('click', function(e){
+  var tab = e.target.closest('.gtab');
+  if(!tab) return;
+  document.querySelectorAll('.gtab').forEach(function(t){t.classList.remove('active');});
+  tab.classList.add('active');
+  var group = tab.dataset.group;
+  closeDrawer();
+  document.querySelectorAll('.s-card').forEach(function(c){
+    c.style.display = (group==='all'||c.dataset.group===group) ? '' : 'none';
+  });
+});
+
+/* 정렬 */
+var gOrd = ['kospi_size','kospi_sector','kosdaq'];
+var sorted = Object.values(sectors).sort(function(a,b){
+  var gi=gOrd.indexOf(a.group), gj=gOrd.indexOf(b.group);
+  if(gi!==gj) return gi-gj;
+  return (a.order||99)-(b.order||99);
+});
+
+/* 카드 생성 */
+var grid = document.getElementById('card-grid');
+sorted.forEach(function(s){
+  var col  = COLORS[s.code]||'#64748b';
+  var pez  = s.current.pe_z, pbz = s.current.pb_z;
+  var sigZ = (Math.abs(pez)>Math.abs(pbz))?pez:pbz;
+  var repHTML = (s.reps||[]).map(function(r){
+    return '<span class="rep-chip" data-rep="'+r+'">'+r+'</span>';
+  }).join('');
+
+  var card = document.createElement('div');
+  card.className = 's-card';
+  card.id = 'card-'+s.code;
+  card.dataset.group = s.group;
+  card.dataset.code  = s.code;
+  card.style.borderTop = '3px solid '+col;
+
+  card.innerHTML =
+    '<div class="card-top">'+
+      '<div class="card-name">'+s.name+'</div>'+
+      '<div class="card-signal" style="background:'+zBg(sigZ)+'20;color:'+zBg(sigZ)+';">'+zLbl(sigZ)+'</div>'+
+    '</div>'+
+    '<div class="card-vals">'+
+      '<div class="val-block" style="background:'+zBg(pez)+';">'+
+        '<div class="metric">Fwd P/E</div>'+
+        '<div class="num">'+s.current.pe+'x</div>'+
+        '<div class="zval">Z='+fmtZ(pez)+'</div>'+
+      '</div>'+
+      '<div class="val-block" style="background:'+zBg(pbz)+';outline:2px solid rgba(255,255,255,.4);outline-offset:-2px;">'+
+        '<div class="metric">Fwd P/B</div>'+
+        '<div class="num">'+s.current.pb+'x</div>'+
+        '<div class="zval">Z='+fmtZ(pbz)+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="gauge-wrap">'+
+      '<div class="gauge-lbl"><span>저평가</span><span>적정</span><span>과열</span></div>'+
+      '<div class="gauge-track">'+
+        '<div class="gauge-mark"></div>'+
+        '<div class="gauge-fill" style="width:'+zGauge(pez)+'%;background:'+zBg(pez)+';opacity:.75;"></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="reps-wrap">'+repHTML+'</div>';
+
+  card.addEventListener('click', function(e){
+    toggleDrawer(s.code, card);
+  });
+  grid.appendChild(card);
+});
+
+/* ── 수급 신호 자동 반영 (sector_supply.js 로드 후) ── */
+(function applySupply(){
+  if(typeof sectorSupply === 'undefined') return;
+  var ss = sectorSupply.sectors;
+
+  Object.keys(ss).forEach(function(code){
+    var sup = ss[code];
+    var foreSig = sup.summary.signal.fore;
+    var instSig = sup.summary.signal.inst;
+    var f20 = sup.summary.d20.fore;
+    var i20 = sup.summary.d20.inst;
+
+    /* 카드 상단에 수급 배지 추가 */
+    var card = document.getElementById('card-'+code);
+    if(!card) return;
+
+    var badge = document.createElement('div');
+    badge.style.cssText =
+      'display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;';
+
+    function mkBadge(label, val, sig){
+      var span = document.createElement('span');
+      var bg = sig==='inflow'?'#dcfce7':sig==='outflow'?'#fee2e2':'#f1f5f9';
+      var col= sig==='inflow'?'#15803d':sig==='outflow'?'#b91c1c':'#64748b';
+      var arr= sig==='inflow'?'▲':sig==='outflow'?'▼':'–';
+      span.style.cssText = 'font-size:9px;padding:2px 6px;border-radius:3px;'+
+        'background:'+bg+';color:'+col+';font-weight:600;';
+      var absVal = Math.abs(val);
+      var disp = absVal>=10000?(absVal/10000).toFixed(1)+'조':(absVal/1000).toFixed(0)+'천억';
+      span.textContent = label+' '+arr+disp;
+      return span;
+    }
+    var iv20 = sup.summary.d20.indv;
+    var indvSig = sup.summary.signal.indv;
+    badge.appendChild(mkBadge('외국인', f20,  foreSig));
+    badge.appendChild(mkBadge('기관',   i20,  instSig));
+    badge.appendChild(mkBadge('개인',   iv20, indvSig));
+    card.appendChild(badge);
+  });
+})();
+
+/* ── 표시 모드 ── */
+var viewMode = 'popup';
+function setViewMode(mode){
+  viewMode=mode;
+  document.getElementById('vmt-popup').classList.toggle('active',mode==='popup');
+  document.getElementById('vmt-inline').classList.toggle('active',mode==='inline');
+  closeAll();
+}
+
+var MODAL_CHARTS={};
+function openModal(code){
+  var s=sectors[code],col=COLORS[code]||'#64748b';
+  ['pe','pb'].forEach(function(k){if(MODAL_CHARTS[k]){MODAL_CHARTS[k].destroy();delete MODAL_CHARTS[k];}});
+  document.getElementById('modal-title').textContent=s.name+' — Fwd P/E & P/B 밴드 추이 (±1σ·±2σ)';
+  document.getElementById('modal-title').style.color=col;
+  document.querySelectorAll('#modal-range-tabs .rtab').forEach(function(t,i){t.classList.toggle('active',i===0);});
+  document.getElementById('modal-backdrop').classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(function(){drawModalChart(code,'pe',s.pe_stats,col);drawModalChart(code,'pb',s.pb_stats,col);},60);
+}
+function closeModal(){
+  document.getElementById('modal-backdrop').classList.remove('open');
+  document.body.style.overflow='';
+  ['pe','pb'].forEach(function(k){if(MODAL_CHARTS[k]){MODAL_CHARTS[k].destroy();delete MODAL_CHARTS[k];}});
+  if(activeCode){var c=document.getElementById('card-'+activeCode);if(c)c.classList.remove('active');activeCode=null;}
+}
+function onBackdropClick(e){if(e.target===document.getElementById('modal-backdrop'))closeModal();}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeInlineDrawer();}});
+
+var inlineDrawerCode=null;
+function openInlineDrawer(code,card){
+  var s=sectors[code],col=COLORS[code]||'#64748b';
+  closeInlineDrawer();
+  inlineDrawerCode=code; card.classList.add('active');
+  var drawer=document.createElement('div');
+  drawer.className='inline-drawer open'; drawer.id='idr-'+code;
+  var hdr=document.createElement('div'); hdr.className='drawer-header';
+  var ttl=document.createElement('div'); ttl.className='drawer-title'; ttl.style.color=col;
+  ttl.textContent=s.name+' — Fwd P/E & P/B 밴드 추이 (±1σ·±2σ)';
+  var ctrl=document.createElement('div'); ctrl.style.cssText='display:flex;gap:6px;align-items:center;';
+  var rts=document.createElement('div'); rts.className='range-tabs';
+  ['전체','3년','1년'].forEach(function(r){
+    var btn=document.createElement('button'); btn.className='rtab'+(r==='전체'?' active':'');
+    btn.textContent=r; btn.onclick=function(){setRange(r,'inline');}; rts.appendChild(btn);
+  });
+  var cb=document.createElement('button'); cb.className='btn-close-modal'; cb.textContent='✕'; cb.onclick=closeInlineDrawer;
+  ctrl.appendChild(rts); ctrl.appendChild(cb); hdr.appendChild(ttl); hdr.appendChild(ctrl); drawer.appendChild(hdr);
+  var charts=document.createElement('div'); charts.className='drawer-charts';
+  ['pe','pb'].forEach(function(k){
+    var wrap=document.createElement('div'); wrap.className='drawer-chart-wrap';
+    var lbl=document.createElement('div'); lbl.className='drawer-chart-label'; lbl.textContent=k==='pe'?'Fwd P/E':'Fwd P/B';
+    var cv=document.createElement('canvas'); cv.id='idc-'+k;
+    wrap.appendChild(lbl); wrap.appendChild(cv); charts.appendChild(wrap);
+  });
+  drawer.appendChild(charts);
+  document.getElementById('card-grid').appendChild(drawer);
+  drawer.scrollIntoView({behavior:'smooth',block:'nearest'});
+  setTimeout(function(){drawInlineChart(code,'pe',s.pe_stats,col);drawInlineChart(code,'pb',s.pb_stats,col);},60);
+}
+function closeInlineDrawer(){
+  if(inlineDrawerCode){var c=document.getElementById('card-'+inlineDrawerCode);if(c)c.classList.remove('active');}
+  ['pe','pb'].forEach(function(k){var ch=CHARTS['i_'+k];if(ch){ch.destroy();delete CHARTS['i_'+k];}});
+  var old=document.querySelector('.inline-drawer'); if(old)old.remove();
+  inlineDrawerCode=null;
+}
+function toggleDrawer(code,card){
+  if(viewMode==='popup'){
+    if(activeCode===code){closeModal();return;}
+    if(activeCode){var prev=document.getElementById('card-'+activeCode);if(prev)prev.classList.remove('active');}
+    activeCode=code; card.classList.add('active'); openModal(code);
+  } else {
+    if(inlineDrawerCode===code){closeInlineDrawer();return;}
+    openInlineDrawer(code,card); activeCode=code;
+  }
+}
+function closeAll(){closeModal();closeInlineDrawer();}
+function closeDrawer(){closeAll();}
+
+function makeChartOpts(code,key,stats){
+  var s=sectors[code],yr=(s&&s.y_range)?s.y_range:{};
+  var yMin=(key==='pe')?yr.pe_min:yr.pb_min,yMax=(key==='pe')?yr.pe_max:yr.pb_max;
+  return {responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},annotation:{annotations:{
+      mean:{type:'line',yMin:stats.mean,yMax:stats.mean,borderColor:'#16a34a',borderWidth:1.2,borderDash:[5,3],
+        label:{content:'평균 '+stats.mean,display:true,position:'end',font:{size:9},color:'#16a34a',backgroundColor:'rgba(248,250,252,.9)'}},
+      b1:{type:'box',yMin:stats.p1s_lo,yMax:stats.p1s_hi,backgroundColor:'rgba(217,119,6,.09)',borderWidth:0},
+      b2:{type:'box',yMin:stats.p2s_lo,yMax:stats.p2s_hi,backgroundColor:'rgba(220,38,38,.06)',borderWidth:0},
+      hi1:{type:'line',yMin:stats.p1s_hi,yMax:stats.p1s_hi,borderColor:'rgba(217,119,6,.5)',borderWidth:1,borderDash:[3,3]},
+      lo1:{type:'line',yMin:stats.p1s_lo,yMax:stats.p1s_lo,borderColor:'rgba(217,119,6,.5)',borderWidth:1,borderDash:[3,3]},
+      hi2:{type:'line',yMin:stats.p2s_hi,yMax:stats.p2s_hi,borderColor:'rgba(220,38,38,.5)',borderWidth:1,borderDash:[3,3]},
+      lo2:{type:'line',yMin:stats.p2s_lo,yMax:stats.p2s_lo,borderColor:'rgba(220,38,38,.5)',borderWidth:1,borderDash:[3,3]},
+    }}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:8,maxRotation:0},grid:{color:'rgba(203,213,225,.5)'}},
+      y:{min:(yMin!==undefined)?yMin:undefined,max:(yMax!==undefined)?yMax:undefined,
+        ticks:{color:'#475569',font:{size:10},callback:function(v){return v.toFixed(1)+'x';}},
+        grid:{color:'rgba(203,213,225,.5)'}}}};
+}
+function makeDataset(code,key){
+  var ser=(typeof sectorSeries!=='undefined')?sectorSeries[code]:[];
+  return {labels:ser.map(function(r){return r.d;}),data:ser.map(function(r){return r[key];})};
+}
+function drawModalChart(code,key,stats,col){
+  var lineCol=(key==='pb')?'#7c3aed':col,cv=document.getElementById('mc-'+key);
+  if(!cv) return;
+  var d=makeDataset(code,key);
+  MODAL_CHARTS[key]=new Chart(cv,{type:'line',data:{labels:d.labels,datasets:[{data:d.data,borderColor:lineCol,borderWidth:1.8,pointRadius:0,tension:0.3,fill:false,spanGaps:false}]},options:makeChartOpts(code,key,stats)});
+}
+function drawInlineChart(code,key,stats,col){
+  var lineCol=(key==='pb')?'#7c3aed':col,cv=document.getElementById('idc-'+key);
+  if(!cv) return;
+  var d=makeDataset(code,key);
+  CHARTS['i_'+key]=new Chart(cv,{type:'line',data:{labels:d.labels,datasets:[{data:d.data,borderColor:lineCol,borderWidth:1.8,pointRadius:0,tension:0.3,fill:false,spanGaps:false}]},options:makeChartOpts(code,key,stats)});
+}
+function drawChart(code,key,stats,col){
+  if(viewMode==='popup') drawModalChart(code,key,stats,col);
+  else drawInlineChart(code,key,stats,col);
+}
+
+function setRange(range,target){
+  var code=(target==='inline')?inlineDrawerCode:activeCode;
+  if(!code) return;
+  var ser=(typeof sectorSeries!=='undefined')?sectorSeries[code]:[];
+  var base=new Date(LIGHT.base_date);
+  var from=(range==='전체'||range==='all')?new Date('2019-01-01')
+    :(range==='3년'||range==='3y')?new Date(base.getFullYear()-3,base.getMonth(),base.getDate())
+    :new Date(base.getFullYear()-1,base.getMonth(),base.getDate());
+  var tabContainer=(target==='inline')?document.querySelector('#idr-'+code+' .range-tabs'):document.getElementById('modal-range-tabs');
+  if(tabContainer){tabContainer.querySelectorAll('.rtab').forEach(function(t){t.classList.toggle('active',t.textContent===range);});}
+  var chartMap=(target==='inline')?{pe:CHARTS['i_pe'],pb:CHARTS['i_pb']}:{pe:MODAL_CHARTS['pe'],pb:MODAL_CHARTS['pb']};
+  ['pe','pb'].forEach(function(key){
+    var ch=chartMap[key]; if(!ch) return;
+    var f=ser.filter(function(r){return new Date(r.d)>=from;});
+    ch.data.labels=f.map(function(r){return r.d;}); ch.data.datasets[0].data=f.map(function(r){return r[key];}); ch.update();
+  });
+}
+
+window.highlightReps = function(map){
+  document.querySelectorAll('.rep-chip').forEach(function(chip){
+    chip.className='rep-chip';
+    if(map[chip.dataset.rep]) chip.classList.add(map[chip.dataset.rep]);
+  });
+};
+
+</script>
+</body>
+</html>
